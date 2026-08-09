@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Run core library tests
+        run: dotnet test src/DekerekeToPa.Tests -c Release --logger "console;verbosity=detailed"
+
+  # TODO: windows job that downloads the PA installer, extracts Pa.exe and
+  # SilTools.dll, and builds src/PaDekereke as an artifact. See HANDOFF.md
+  # ("Getting PA assemblies without a PA install").

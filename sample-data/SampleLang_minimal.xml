@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<phon_data>
+	<data_form>
+		<Reference>0012</Reference>
+		<Category>Verb</Category>
+		<SoundFile>0012_turun.wav</SoundFile>
+		<IndonesianGloss>turun</IndonesianGloss>
+		<Phonetic>oudo</Phonetic>
+		<Tulisan>oudo</Tulisan>
+		<Speaker2>oudo</Speaker2>
+		<kosong />
+		<Xstraight />
+		<Xbig />
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike />
+		<Catatan />
+	</data_form>
+	<data_form>
+		<Reference>0015</Reference>
+		<Category>Noun</Category>
+		<SoundFile>0015_rawa.wav</SoundFile>
+		<IndonesianGloss>rawa</IndonesianGloss>
+		<Phonetic>tei</Phonetic>
+		<Tulisan>tei</Tulisan>
+		<Speaker2>tei</Speaker2>
+		<kosong />
+		<Xstraight>tei dobe</Xstraight>
+		<Xbig>tei kɔi</Xbig>
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike />
+		<Catatan>periksa dengan penutur lain</Catatan>
+	</data_form>
+	<data_form>
+		<Reference>0018</Reference>
+		<Category>Noun</Category>
+		<SoundFile>0018_batu.wav</SoundFile>
+		<IndonesianGloss>batu</IndonesianGloss>
+		<Phonetic>sika</Phonetic>
+		<Tulisan>sika</Tulisan>
+		<Speaker2>siga</Speaker2>
+		<kosong />
+		<Xstraight />
+		<Xbig />
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike />
+		<Catatan>ejaan belum pasti: sika / siga</Catatan>
+	</data_form>
+	<data_form>
+		<Reference>0023</Reference>
+		<Category>Noun</Category>
+		<SoundFile>0023_api.wav</SoundFile>
+		<IndonesianGloss>api</IndonesianGloss>
+		<Phonetic>haɭe</Phonetic>
+		<Tulisan>hale</Tulisan>
+		<Speaker2>hale</Speaker2>
+		<kosong />
+		<Xstraight />
+		<Xbig />
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike />
+		<Catatan />
+	</data_form>
+	<data_form>
+		<Reference>0027</Reference>
+		<Category />
+		<SoundFile />
+		<IndonesianGloss>kosong</IndonesianGloss>
+		<Phonetic />
+		<Tulisan />
+		<Speaker2 />
+		<kosong>x</kosong>
+		<Xstraight />
+		<Xbig />
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike />
+		<Catatan />
+	</data_form>
+	<data_form>
+		<Reference>0030</Reference>
+		<Category>Adj</Category>
+		<SoundFile>0030_besar.wav</SoundFile>
+		<IndonesianGloss>besar</IndonesianGloss>
+		<Phonetic>kɔi</Phonetic>
+		<Tulisan>koi</Tulisan>
+		<Speaker2>koi</Speaker2>
+		<kosong />
+		<Xstraight />
+		<Xbig>du kɔi</Xbig>
+		<Xbroken />
+		<Xnearby />
+		<Xstrong />
+		<Xlike>kɔi mɛ</Xlike>
+		<Catatan />
+	</data_form>
+</phon_data>

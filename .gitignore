@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+*.user
+Output/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Test artifacts
+TestResults/
+*.trx
+
+# Installer output
+installer/Output/
+
+# macOS
+.DS_Store

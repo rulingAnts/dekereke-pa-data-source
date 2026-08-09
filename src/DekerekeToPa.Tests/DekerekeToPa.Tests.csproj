@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests target net8.0 so they run with `dotnet test` on Linux/macOS (CI and
+    cloud agents) - the core library is netstandard2.0 and has no Windows
+    dependency. Encoding fixtures are generated at run time (see Fixtures.cs)
+    so no committed file can be silently re-encoded by an editor or git.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>DekerekeToPa.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DekerekeToPa\DekerekeToPa.csproj" />
+  </ItemGroup>
+
+</Project>

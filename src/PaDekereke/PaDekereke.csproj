@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Phonology Assistant add-on. PA's undocumented add-on loader
+    (App.ReadAddOns, src/Pa/App.cs:367 in sillsdev/phonology-assistant) scans
+    <PA install>\AddOns\*.dll at startup and instantiates any public class named
+    "PaAddOnManager". Install therefore = copy build output into that folder.
+
+    Must target net48 (matches Pa.exe 4.1.1) and load into a 32-bit process
+    (Pa.exe is x86) - AnyCPU DLLs load fine into a 32-bit process, so no
+    PlatformTarget is forced here.
+
+    References: the INSTALLED Pa.exe and SilTools.dll, not the PA source tree.
+    Override PaInstallDir if PA lives elsewhere:
+      dotnet build -p:PaInstallDir="D:\somewhere\PA\"
+    On a machine without PA (CI, cloud agents), obtain the two assemblies by
+    extracting the PA installer (see HANDOFF.md) and point PaInstallDir at them.
+
+    Building on Linux/macOS works via Microsoft.NETFramework.ReferenceAssemblies
+    (compile only - running still requires Windows).
+
+    net48 defaults to C# 7.3 - keep the code 7.3-compatible.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>PaDekereke</RootNamespace>
+    <AssemblyName>PaDekereke</AssemblyName>
+    <PaInstallDir Condition="'$(PaInstallDir)' == ''">C:\Program Files (x86)\SIL\Phonology Assistant\</PaInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Pa">
+      <HintPath>$(PaInstallDir)Pa.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SilTools">
+      <HintPath>$(PaInstallDir)SilTools.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DekerekeToPa\DekerekeToPa.csproj" />
+  </ItemGroup>
+
+</Project>

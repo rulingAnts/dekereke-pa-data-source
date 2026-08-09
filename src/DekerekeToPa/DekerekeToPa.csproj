@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Core library: reads Dekereke phonology databases, maps their user-defined
+    columns onto Phonology Assistant fields, and emits Toolbox SFM that PA
+    imports natively.
+
+    netstandard2.0 so the same assembly serves BOTH consumers:
+      - the PaDekereke add-on (net48, must match the installed Pa.exe), and
+      - the test project (net8.0, runnable on Linux/macOS CI and cloud agents).
+
+    NOTE: netstandard2.0 defaults to C# 7.3 - keep the code 7.3-compatible
+    (no switch expressions, no using-declarations, no target-typed new).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>DekerekeToPa</RootNamespace>
+    <AssemblyName>DekerekeToPa</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,33 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DekerekeToPa", "src\DekerekeToPa\DekerekeToPa.csproj", "{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DekerekeToPa.Tests", "src\DekerekeToPa.Tests\DekerekeToPa.Tests.csproj", "{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A02}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaDekereke", "src\PaDekereke\PaDekereke.csproj", "{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A03}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E4A3C6E-2A1B-4B7D-9C21-B60E4A1D5A03}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
