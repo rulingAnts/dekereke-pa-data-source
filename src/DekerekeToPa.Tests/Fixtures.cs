@@ -84,9 +84,9 @@ namespace DekerekeToPa.Tests
 "</phon_data>\n";
 
 		/// <summary>
-		/// UTF-16LE with BOM, declaration says utf-16 - byte-for-byte what current
-		/// Dekereke writes. Encoding.Unicode is UTF-16LE and emits the BOM via
-		/// File.WriteAllText.
+		/// UTF-16LE with BOM, declaration says utf-16 - byte-for-byte what older
+		/// Dekereke releases write (still widely in the field). Encoding.Unicode is
+		/// UTF-16LE and emits the BOM via File.WriteAllText.
 		/// </summary>
 		public static string WriteUtf16(string dir, string name = "Fayu_test.xml")
 		{
