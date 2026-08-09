@@ -6,6 +6,12 @@ re-deriving it. All PA references are to `sillsdev/phonology-assistant` @
 Read `docs/PLAN.md` for the full design rationale; this file is the working
 engineer's version.
 
+**Working offline?** `docs/pa-internals/` vendors what you would otherwise need
+the PA repository for: `api-surface.md` (exact signatures of every PA type the
+add-on touches, enough to build a stub assembly) and `hook-points.md` (the PA
+source excerpts behind the claims below). PA's assemblies are not and cannot be
+committed here.
+
 ## The mechanism, verified line by line
 
 **Add-on loader.** `App.ReadAddOns()` — `src/Pa/App.cs:367`, called from
@@ -123,19 +129,23 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
 | `sample-data/` | Generated, encoding-verified (UTF-16LE+BOM = older releases, plain UTF-8 no BOM = current release, CRLF) |
 | Part B (native PA patch) | Designed only — see `docs/PLAN.md`; do not start without maintainer buy-in |
 
-## Getting PA assemblies without a PA install
+## Building the add-on without a PA install
 
-The add-on references the installed `Pa.exe` and `SilTools.dll`. On a machine
-without PA (CI, cloud agents):
+The add-on references the installed `Pa.exe` and `SilTools.dll`. Two routes:
 
-1. Download the PA installer from https://software.sil.org/phonologyassistant/download/
-2. Linux: `msiextract` (from `msitools`) unpacks MSIs; the installer may be an
-   exe wrapper around an MSI — `7z x` handles most wrappers.
-3. Point the build at the extracted folder:
-   `dotnet build src/PaDekereke -c Release -p:PaInstallDir=/path/to/extracted/`
+**With network access** — download the PA installer from
+https://software.sil.org/phonologyassistant/download/ ; on Linux `msiextract`
+(from `msitools`) unpacks MSIs, and `7z x` handles most exe wrappers. Then
+`dotnet build src/PaDekereke -c Release -p:PaInstallDir=/path/to/extracted/`.
 
-`Microsoft.NETFramework.ReferenceAssemblies` makes net48 compile on any OS
-(compile only; running needs Windows).
+**Offline** — build a stub assembly from the signatures in
+`docs/pa-internals/api-surface.md` (recipe at the end of that file) and build
+with `-p:UseStubs=true`. This type-checks the add-on; it proves nothing about
+run-time behaviour, and results must be reported as such. The stub must never
+be shipped or installed.
+
+Either way `Microsoft.NETFramework.ReferenceAssemblies` makes net48 compile on
+any OS — compile only; running needs Windows.
 
 ## Remaining work, in priority order
 

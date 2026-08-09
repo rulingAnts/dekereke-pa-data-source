@@ -52,6 +52,7 @@ to reopen the mapping dialog.
 | `installer/` | Inno Setup script |
 | `sample-data/` | Anonymized sample Dekereke databases (old UTF-16LE and current UTF-8 formats) |
 | `HANDOFF.md` | Technical deep-dive: every PA hook point with file:line, traps, verification plan |
+| `docs/pa-internals/` | Offline PA reference: exact API surface + quoted hook points (for work without access to PA's repo) |
 | `docs/PLAN.md` | The full design document |
 | `CONTRIBUTING.md` | Layout rules, style, testing, what needs Windows |
 | `LICENSING.md` | Third-party licenses and one open licensing decision |
