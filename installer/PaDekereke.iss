@@ -12,10 +12,14 @@
 ;   a. MSI: PA's UpgradeCode is fixed across versions:
 ;      {5E57E4D4-580A-4cc1-9E0C-7EF8D3F81BBD}   (Installer/Product.wxs:9 in the
 ;      sillsdev/phonology-assistant repo). MsiEnumRelatedProducts +
-;      MsiGetProductInfo(INSTALLPROPERTY_INSTALLLOCATION) yields the folder.
-;      TODO(cloud/VM): implement via DLL imports from msi.dll below - stubbed
-;      for now because it needs testing against a real installed PA.
-;   b. Fallback: default path checked in InitializeSetup.
+;      MsiGetProductInfo('InstallLocation') yields the folder. Implemented in
+;      [Code] below. UNVERIFIED: written by inspection against the msi.dll API
+;      docs; it has not yet been compiled by iscc or run against a real
+;      installed PA - verify on Windows before shipping. Note also that
+;      InstallLocation is only populated if PA's MSI set ARPINSTALLLOCATION,
+;      which could not be checked offline - hence the fallbacks stay.
+;   b. Fallback: probe {pf32}\SIL\Phonology Assistant (and the literal default
+;      path) for Pa.exe.
 ;   c. Last resort: the user browses to the folder (DisableDirPage=no).
 ;
 ; Build (Windows): iscc installer\PaDekereke.iss
@@ -55,19 +59,88 @@ SelectDirDesc=Setup could not locate Phonology Assistant automatically.%nPlease 
 const
   DefaultPaDir = 'C:\Program Files (x86)\SIL\Phonology Assistant';
 
+  // Fixed across all PA versions - Installer/Product.wxs:9 in the
+  // sillsdev/phonology-assistant repo.
+  PaUpgradeCode = '{5E57E4D4-580A-4cc1-9E0C-7EF8D3F81BBD}';
+
+  ERROR_SUCCESS = 0;
+
 var
   FoundPaDir: string;
 
-// TODO(cloud/VM): replace this path probe with proper MSI lookup:
-//   function MsiEnumRelatedProducts(lpUpgradeCode: string; dwReserved, iProductIndex: DWORD;
-//     lpProductBuf: string): UINT; external 'MsiEnumRelatedProductsW@msi.dll stdcall';
-//   function MsiGetProductInfo(szProduct, szAttribute: string; lpValueBuf: string;
-//     var pcchValueBuf: DWORD): UINT; external 'MsiGetProductInfoW@msi.dll stdcall';
-// UpgradeCode: {5E57E4D4-580A-4cc1-9E0C-7EF8D3F81BBD}
-// Attribute:   'InstallLocation'
-function DetectPaDir: string;
+// UNVERIFIED (written by inspection; needs a Windows machine with PA
+// installed): enumerate MSI products sharing PA's UpgradeCode and read each
+// one's InstallLocation. Unicode Inno Setup passes String parameters to
+// external functions as null-terminated wide-char pointers; out-buffers are
+// Strings pre-sized with SetLength, per the Inno Setup "external" docs.
+//
+// MsiEnumRelatedProducts: returns ERROR_SUCCESS per product,
+//   ERROR_NO_MORE_ITEMS (259) when done; lpProductBuf receives a 38-char
+//   product code GUID and must hold 39 chars including the terminator.
+// MsiGetProductInfoW: pcchValueBuf is in/out - in: buffer size in chars,
+//   out: chars copied excluding the terminator.
+function MsiEnumRelatedProducts(lpUpgradeCode: string; dwReserved: Cardinal;
+  iProductIndex: Cardinal; lpProductBuf: string): Cardinal;
+  external 'MsiEnumRelatedProductsW@msi.dll stdcall';
+
+function MsiGetProductInfo(szProduct: string; szAttribute: string;
+  lpValueBuf: string; var pcchValueBuf: Cardinal): Cardinal;
+  external 'MsiGetProductInfoW@msi.dll stdcall';
+
+// The install folder of the MSI-registered PA, or '' when PA is not
+// installed (or its MSI never set ARPINSTALLLOCATION, so InstallLocation is
+// empty - the path-probe fallback below still applies).
+function MsiLocatePaDir: string;
+var
+  Index: Cardinal;
+  ProductCode, Location: string;
+  Len: Cardinal;
+  Dir: string;
 begin
   Result := '';
+  Index := 0;
+  repeat
+    SetLength(ProductCode, 39);
+    if MsiEnumRelatedProducts(PaUpgradeCode, 0, Index, ProductCode) <> ERROR_SUCCESS then
+      Break;
+    // Trim at the terminator the API wrote into the buffer.
+    if Pos(#0, ProductCode) > 0 then
+      SetLength(ProductCode, Pos(#0, ProductCode) - 1);
+
+    Len := 512;
+    SetLength(Location, Len);
+    if MsiGetProductInfo(ProductCode, 'InstallLocation', Location, Len) = ERROR_SUCCESS then
+    begin
+      SetLength(Location, Len);
+      Dir := RemoveBackslashUnlessRoot(Trim(Location));
+      if (Dir <> '') and FileExists(Dir + '\Pa.exe') then
+      begin
+        Result := Dir;
+        Exit;
+      end;
+    end;
+
+    Index := Index + 1;
+  until Index > 32; // paranoia cap; UpgradeCode families are tiny
+end;
+
+function DetectPaDir: string;
+var
+  Dir: string;
+begin
+  Result := MsiLocatePaDir;
+  if Result <> '' then
+    Exit;
+
+  // Path-probe fallback: {pf32} is Program Files (x86) on 64-bit Windows and
+  // Program Files on 32-bit (PA is an x86 app).
+  Dir := ExpandConstant('{pf32}') + '\SIL\Phonology Assistant';
+  if FileExists(Dir + '\Pa.exe') then
+  begin
+    Result := Dir;
+    Exit;
+  end;
+
   if FileExists(DefaultPaDir + '\Pa.exe') then
     Result := DefaultPaDir;
 end;
