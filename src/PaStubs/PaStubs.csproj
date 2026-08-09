@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    COMPILE-ONLY STUB. Declares the Pa.exe surface described in
+    docs/pa-internals/api-surface.md so src/PaDekereke can be type-checked on a
+    machine with no Phonology Assistant install (dotnet build -p:UseStubs=true).
+
+    The AssemblyName must be exactly "Pa" so the add-on's reference resolves.
+    Every method throws NotImplementedException: this assembly MUST NEVER be
+    shipped, installed, or placed anywhere PA could load it. A green build
+    against it proves only that the add-on type-checks - nothing about run-time
+    behaviour against real PA.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>Pa</AssemblyName>
+    <RootNamespace>SIL.Pa</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SilToolsStubs\SilToolsStubs.csproj" />
+  </ItemGroup>
+
+</Project>

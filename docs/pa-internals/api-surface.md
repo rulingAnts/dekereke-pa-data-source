@@ -235,3 +235,26 @@ by declaring the surface above in a stub project and referencing that instead:
 **This stub must never be shipped or installed** — it exists only to prove the
 add-on compiles. A green stub build is *not* evidence the add-on works against
 real PA; say so explicitly when reporting results.
+
+Implemented as `src/PaStubs` + `src/SilToolsStubs`; `src/PaDekereke` builds
+against them with `dotnet build -p:UseStubs=true`.
+
+### Types referenced above but not declared (stub-building gap, found 2026-08)
+
+Two types appear in the declarations above without their own transcription, so
+a stub built "exactly from this document" does not compile until they are
+declared somewhere:
+
+- **`ITMAdapter`** — the type of `App.TMAdapter`. Lives in `SilTools.dll`; the
+  add-on never touches it. The stub declares an empty
+  `SilTools.ITMAdapter` placeholder. Its real (large) declaration and exact
+  namespace were not verified against PA source when this file was written.
+- **`FwDataSourceInfo`** — used by a `PaDataSource` constructor and property;
+  FieldWorks-only, never touched by the add-on. The stub declares an empty
+  placeholder in `SIL.Pa.DataSource`; the real type's exact namespace (possibly
+  a `FieldWorks` sub-namespace) was not verified offline.
+
+Neither gap affects the add-on itself — it uses neither type — but anyone
+regenerating the stubs, or extending the add-on to touch toolbars/menus
+(`App.TMAdapter`) or FieldWorks sources, must transcribe the real declarations
+from PA source first.

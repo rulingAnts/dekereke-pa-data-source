@@ -16,6 +16,14 @@
     On a machine without PA (CI, cloud agents), obtain the two assemblies by
     extracting the PA installer (see HANDOFF.md) and point PaInstallDir at them.
 
+    Offline alternative:
+      dotnet build -p:UseStubs=true
+    type-checks against the compile-only stubs in src/PaStubs and
+    src/SilToolsStubs (built from docs/pa-internals/api-surface.md). The stubs
+    must never be shipped or installed, and a green stub build says nothing
+    about run-time behaviour against real PA - it only proves the add-on
+    compiles against the documented surface.
+
     Building on Linux/macOS works via Microsoft.NETFramework.ReferenceAssemblies
     (compile only - running still requires Windows).
 
@@ -24,7 +32,6 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>PaDekereke</RootNamespace>
     <AssemblyName>PaDekereke</AssemblyName>
     <PaInstallDir Condition="'$(PaInstallDir)' == ''">C:\Program Files (x86)\SIL\Phonology Assistant\</PaInstallDir>
@@ -34,7 +41,16 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- WinForms for net48 via plain framework references rather than
+       UseWindowsForms: the WindowsDesktop MSBuild SDK that property imports
+       does not exist in Linux/macOS .NET SDK installs, and for a net48 target
+       these references compile identically everywhere. -->
   <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseStubs)' != 'true'">
     <Reference Include="Pa">
       <HintPath>$(PaInstallDir)Pa.exe</HintPath>
       <Private>false</Private>
@@ -43,6 +59,17 @@
       <HintPath>$(PaInstallDir)SilTools.dll</HintPath>
       <Private>false</Private>
     </Reference>
+  </ItemGroup>
+
+  <!-- Compile-only stubs; Private=false keeps the stub Pa.dll/SilTools.dll
+       out of the build output so they can never be installed by accident. -->
+  <ItemGroup Condition="'$(UseStubs)' == 'true'">
+    <ProjectReference Include="..\PaStubs\PaStubs.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\SilToolsStubs\SilToolsStubs.csproj">
+      <Private>false</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
