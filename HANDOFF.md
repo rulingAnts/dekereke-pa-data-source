@@ -73,11 +73,21 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
 
 ## The traps (each cost real investigation — do not rediscover them)
 
-1. **Encoding.** Current Dekereke writes UTF-16LE + BOM with
-   `encoding="utf-16"` declaration; newer versions write UTF-8. Always hand the
-   RAW STREAM to `XmlReader`/`XDocument`. Pre-decoding to a string leaves a
-   `utf-16` declaration on in-memory UTF-16-decoded text and `XmlReader` throws
-   *"There is no Unicode byte order mark."*
+1. **Encoding.** Three variants are in the field, and nothing else about the
+   format differs between them:
+   - **UTF-16LE + BOM**, `encoding="utf-16"` declaration — older Dekereke
+     releases, still widely in use (Seth's own working database is one)
+   - UTF-8 + BOM — intermediate
+   - **Plain UTF-8, no BOM** — current release (Rod Casali changed the output
+     encoding in the 2026 release at Seth's request)
+
+   Always hand the RAW STREAM to `XmlReader`/`XDocument` and let it resolve the
+   encoding from BOM + declaration. Pre-decoding to a string leaves a `utf-16`
+   declaration on already-decoded text and `XmlReader` throws *"There is no
+   Unicode byte order mark."* Equally, do not assume a BOM exists — the current
+   format has none, and the declaration is the only signal.
+   `DekerekeFileTests.Read_AllEncodingVariants_YieldIdenticalContent` and
+   `SfmWriterTests.Write_AllSourceEncodings_ProduceIdenticalOutput` pin this.
 2. **Mid-load `.pap` save.** `ProjectInventoryBuilder.cs:221` calls
    `_project.Save()` during the FIRST load of a project — i.e. inside our swap
    window — baking the temp SFM path into the `.pap`. Mitigated by an
@@ -110,7 +120,7 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
 | `src/DekerekeToPa.Tests` | Written (NUnit, net8.0). **First task: `dotnet test` and make green** |
 | `src/PaDekereke` add-on + mapping dialog | Written against verified PA APIs; **never compiled** — needs `Pa.exe`/`SilTools.dll` |
 | `installer/PaDekereke.iss` | Drafted; MSI-based PA detection stubbed (TODO comment inside), path-probe fallback works |
-| `sample-data/` | Generated, encoding-verified (UTF-16LE+BOM and UTF-8+BOM, CRLF) |
+| `sample-data/` | Generated, encoding-verified (UTF-16LE+BOM = older releases, plain UTF-8 no BOM = current release, CRLF) |
 | Part B (native PA patch) | Designed only — see `docs/PLAN.md`; do not start without maintainer buy-in |
 
 ## Getting PA assemblies without a PA install

@@ -1,3 +1,21 @@
+// Dekereke Data Sources for Phonology Assistant
+// Copyright (C) 2026 Seth Johnston
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 using System.IO;
 using System.Text;
 using NUnit.Framework;
@@ -32,6 +50,21 @@ namespace DekerekeToPa.Tests
 		public void Sniff_Utf8File_IsTrue()
 		{
 			var path = Fixtures.WriteUtf8(_dir);
+			Assert.That(DekerekeFile.Sniff(path), Is.True);
+		}
+
+		[Test]
+		public void Sniff_Utf8NoBomFile_IsTrue()
+		{
+			// Current Dekereke output format.
+			var path = Fixtures.WriteUtf8NoBom(_dir);
+			Assert.That(DekerekeFile.Sniff(path), Is.True);
+		}
+
+		[Test]
+		public void Sniff_Utf8NoBomNoDeclaration_IsTrue()
+		{
+			var path = Fixtures.WriteUtf8NoBomNoDecl(_dir);
 			Assert.That(DekerekeFile.Sniff(path), Is.True);
 		}
 
@@ -82,18 +115,48 @@ namespace DekerekeToPa.Tests
 			Assert.That(db.Records[0].Get("qvp_acoustic_data_"), Is.Null);
 		}
 
+		/// <summary>
+		/// The encoding matrix. Dekereke's on-disk encoding changed over time but
+		/// nothing else about the format did, so every variant must produce
+		/// byte-identical parse results:
+		///   - UTF-16LE + BOM ... older Dekereke releases (still in the field)
+		///   - UTF-8 + BOM ..... intermediate
+		///   - UTF-8, no BOM ... current release (2026)
+		///   - no declaration .. degenerate; XML defaults to UTF-8
+		/// </summary>
 		[Test]
-		public void Read_Utf16AndUtf8_YieldIdenticalContent()
+		public void Read_AllEncodingVariants_YieldIdenticalContent()
 		{
-			var db16 = DekerekeFile.Read(Fixtures.WriteUtf16(_dir));
-			var db8 = DekerekeFile.Read(Fixtures.WriteUtf8(_dir));
+			var baseline = DekerekeFile.Read(Fixtures.WriteUtf16(_dir));
 
-			Assert.That(db8.Records.Count, Is.EqualTo(db16.Records.Count));
-			Assert.That(db8.Columns, Is.EqualTo(db16.Columns));
-			Assert.That(db8.Records[1].Get("Phonetic"), Is.EqualTo(db16.Records[1].Get("Phonetic")));
+			var others = new[]
+			{
+				Fixtures.WriteUtf8(_dir),
+				Fixtures.WriteUtf8NoBom(_dir),
+				Fixtures.WriteUtf8NoBomNoDecl(_dir)
+			};
+
+			foreach (var path in others)
+			{
+				var db = DekerekeFile.Read(path);
+
+				Assert.That(db.Records.Count, Is.EqualTo(baseline.Records.Count), path);
+				Assert.That(db.Columns, Is.EqualTo(baseline.Columns), path);
+
+				for (int i = 0; i < baseline.Records.Count; i++)
+				{
+					foreach (var column in baseline.Columns)
+					{
+						Assert.That(db.Records[i].Get(column),
+							Is.EqualTo(baseline.Records[i].Get(column)),
+							path + " record " + i + " column " + column);
+					}
+				}
+			}
+
 			// "ku\u026Di" spelled with an escape so a Windows system-codepage
 			// compiler can never mangle the source literal.
-			Assert.That(db16.Records[1].Get("Phonetic"), Is.EqualTo("ku\u026Di"));
+			Assert.That(baseline.Records[1].Get("Phonetic"), Is.EqualTo("ku\u026Di"));
 		}
 
 		[Test]

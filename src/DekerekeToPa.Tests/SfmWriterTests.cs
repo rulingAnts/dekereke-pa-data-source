@@ -1,3 +1,21 @@
+// Dekereke Data Sources for Phonology Assistant
+// Copyright (C) 2026 Seth Johnston
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -151,18 +169,32 @@ namespace DekerekeToPa.Tests
 			Assert.That(sfLine, Is.EqualTo("\\sf 0015_swamp.wav"));
 		}
 
+		/// <summary>
+		/// Source encoding must not leak into the output: an old UTF-16LE database
+		/// and a current plain-UTF-8 one convert to the same bytes.
+		/// </summary>
 		[Test]
-		public void Write_Utf16AndUtf8Sources_ProduceIdenticalOutput()
+		public void Write_AllSourceEncodings_ProduceIdenticalOutput()
 		{
 			SfmWriter.Write(_db, _map, _outPath);
-			var fromUtf16 = File.ReadAllText(_outPath);
+			var baseline = File.ReadAllBytes(_outPath);
 
-			var db8 = DekerekeFile.Read(Fixtures.WriteUtf8(_dir));
-			var out8 = Path.Combine(_dir, "out", "utf8.xml");
-			SfmWriter.Write(db8, AutoMapper.Map(db8.Columns), out8);
-			var fromUtf8 = File.ReadAllText(out8);
+			var variants = new[]
+			{
+				Fixtures.WriteUtf8(_dir),
+				Fixtures.WriteUtf8NoBom(_dir),
+				Fixtures.WriteUtf8NoBomNoDecl(_dir)
+			};
 
-			Assert.That(fromUtf8, Is.EqualTo(fromUtf16));
+			int n = 0;
+			foreach (var source in variants)
+			{
+				var db = DekerekeFile.Read(source);
+				var outPath = Path.Combine(_dir, "out", "variant" + (n++) + ".xml");
+				SfmWriter.Write(db, AutoMapper.Map(db.Columns), outPath);
+
+				Assert.That(File.ReadAllBytes(outPath), Is.EqualTo(baseline), source);
+			}
 		}
 
 		[Test]

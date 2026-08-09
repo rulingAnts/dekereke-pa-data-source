@@ -1,5 +1,8 @@
 # Dekereke Data Sources for Phonology Assistant
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![tests](https://github.com/rulingAnts/dekereke-pa-data-source/actions/workflows/tests.yml/badge.svg)](https://github.com/rulingAnts/dekereke-pa-data-source/actions/workflows/tests.yml)
+
 Use a [Dekereke](https://casali.canil.ca/) phonology database (Rod Casali's
 Phonology Database software) as a **live, auto-refreshing data source** in SIL's
 [Phonology Assistant](https://software.sil.org/phonologyassistant/) (PA).
@@ -43,13 +46,15 @@ to reopen the mapping dialog.
 
 | Path | What |
 |---|---|
-| `src/DekerekeToPa/` | Core library (netstandard2.0, no PA dependency): read Dekereke XML (UTF-16LE-BOM and UTF-8), auto-map columns, write Toolbox SFM |
+| `src/DekerekeToPa/` | Core library (netstandard2.0, no PA dependency): read Dekereke XML (every encoding variant), auto-map columns, write Toolbox SFM |
 | `src/DekerekeToPa.Tests/` | NUnit tests (net8.0 — run anywhere with `dotnet test`) |
 | `src/PaDekereke/` | The PA add-on (net48; references the installed `Pa.exe`/`SilTools.dll`) |
 | `installer/` | Inno Setup script |
-| `sample-data/` | Anonymized sample Dekereke databases in both encodings |
-| `HANDOFF.md` | Technical deep-dive: every PA hook point with file:line, risks, verification plan |
+| `sample-data/` | Anonymized sample Dekereke databases (old UTF-16LE and current UTF-8 formats) |
+| `HANDOFF.md` | Technical deep-dive: every PA hook point with file:line, traps, verification plan |
 | `docs/PLAN.md` | The full design document |
+| `CONTRIBUTING.md` | Layout rules, style, testing, what needs Windows |
+| `LICENSING.md` | Third-party licenses and one open licensing decision |
 
 ## Building
 
@@ -72,7 +77,13 @@ contributed to PA itself — is designed in `docs/PLAN.md` (Part B).
 
 ## License
 
-MIT. Phonology Assistant is © SIL International, MIT-licensed, at
+**AGPL-3.0-or-later** — see [LICENSE](LICENSE), and [LICENSING.md](LICENSING.md)
+for third-party components and one open licensing decision (the AGPL currently
+blocks the upstream-contribution track described in `docs/PLAN.md`).
+
+Phonology Assistant is © SIL International, MIT-licensed, at
 [sillsdev/phonology-assistant](https://github.com/sillsdev/phonology-assistant).
-Dekereke is Rod Casali's software; this project is unaffiliated with either and
-just makes them talk to each other.
+Dekereke / Phonology Database is Rod Casali's software
+([casali.canil.ca](https://casali.canil.ca/)). This project is unaffiliated
+with either and only makes them talk to each other — it reads Dekereke's file
+format and uses no Dekereke code.

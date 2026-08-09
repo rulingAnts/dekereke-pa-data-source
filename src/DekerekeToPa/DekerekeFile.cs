@@ -1,3 +1,21 @@
+// Dekereke Data Sources for Phonology Assistant
+// Copyright (C) 2026 Seth Johnston
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -65,13 +83,18 @@ namespace DekerekeToPa
 	/// <summary>
 	/// Reads Dekereke database XML.
 	///
-	/// ENCODING - the one real trap in this whole project:
-	/// current Dekereke writes UTF-16LE with BOM (declaration says encoding="utf-16");
-	/// newer versions write UTF-8. Every reader here therefore opens the RAW STREAM and
-	/// hands it to XmlReader/XDocument, which sniff the BOM and declaration themselves.
+	/// ENCODING - the one real trap in this whole project. Three variants are in the
+	/// field, differing in nothing but their bytes:
+	///   - UTF-16LE with BOM, declaration says encoding="utf-16"  (older releases,
+	///     still widely used)
+	///   - UTF-8 with BOM                                          (intermediate)
+	///   - plain UTF-8, no BOM                                     (current release)
+	/// Every reader here therefore opens the RAW STREAM and hands it to
+	/// XmlReader/XDocument, which resolve the encoding from BOM and declaration.
 	/// Never File.ReadAllText first: a string already decoded from UTF-16 still carries
 	/// encoding="utf-16" in its declaration, and XmlReader then throws
-	/// "There is no Unicode byte order mark."
+	/// "There is no Unicode byte order mark." And never require a BOM - the current
+	/// format has none, leaving the declaration as the only signal.
 	/// </summary>
 	public static class DekerekeFile
 	{

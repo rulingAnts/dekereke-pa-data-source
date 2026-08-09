@@ -1,3 +1,21 @@
+// Dekereke Data Sources for Phonology Assistant
+// Copyright (C) 2026 Seth Johnston
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+// for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 using System;
 using System.IO;
 using System.Text;
@@ -78,12 +96,37 @@ namespace DekerekeToPa.Tests
 			return path;
 		}
 
-		/// <summary>UTF-8 with BOM, what newer Dekereke versions write.</summary>
+		/// <summary>UTF-8 with BOM - an intermediate Dekereke variant.</summary>
 		public static string WriteUtf8(string dir, string name = "Fayu_test_utf8.xml")
 		{
 			var path = Path.Combine(dir, name);
 			var content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + Body;
 			File.WriteAllText(path, content, new UTF8Encoding(true));
+			return path;
+		}
+
+		/// <summary>
+		/// Plain UTF-8, NO BOM - what current Dekereke writes (Rod Casali changed
+		/// the output encoding in the 2026 release). The XML declaration is the only
+		/// encoding signal here, which is exactly why the reader must hand the raw
+		/// stream to the XML parser rather than guessing an encoding itself.
+		/// </summary>
+		public static string WriteUtf8NoBom(string dir, string name = "Fayu_test_utf8_nobom.xml")
+		{
+			var path = Path.Combine(dir, name);
+			var content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + Body;
+			File.WriteAllText(path, content, new UTF8Encoding(false));
+			return path;
+		}
+
+		/// <summary>
+		/// Plain UTF-8, no BOM, and no XML declaration at all - the degenerate case.
+		/// XML's own default is UTF-8, so this must still read correctly.
+		/// </summary>
+		public static string WriteUtf8NoBomNoDecl(string dir, string name = "Fayu_test_bare.xml")
+		{
+			var path = Path.Combine(dir, name);
+			File.WriteAllText(path, Body, new UTF8Encoding(false));
 			return path;
 		}
 

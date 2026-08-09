@@ -118,8 +118,9 @@ installer/               Inno Setup script
 ### `DekerekeFile` — reading
 
 Sniff and read with a **stream-based** `XmlReader` (`File.OpenRead` → `XmlReader.Create(stream)`),
-never `File.ReadAllText`. This is the one real trap: current Dekereke writes **UTF-16LE + BOM** with
-`encoding="utf-16"` in the declaration, newer versions write UTF-8. A string already decoded from
+never `File.ReadAllText`. This is the one real trap: older Dekereke writes **UTF-16LE + BOM** with
+`encoding="utf-16"` in the declaration; the current release writes **plain UTF-8 with no BOM**,
+where the declaration is the only encoding signal. A string already decoded from
 UTF-16 still carries that declaration and `XmlReader` throws *"There is no Unicode byte order
 mark."* Reading from the stream sniffs the BOM and handles both with no version check.
 
@@ -230,7 +231,7 @@ added, touching no existing behaviour:
 3. **`DekerekeDataSourceReader.cs`**, modeled on `SfmDataSourceReader.cs` (227 lines). Reads the
    Dekereke XML **straight into `RecordCacheEntry` objects** — no SFM intermediate at all, which is
    cleaner than Part A and drops the whole class of marker-collision and newline-flattening
-   constraints. Same stream-based `XmlReader` for the UTF-16/UTF-8 handling.
+   constraints. Same stream-based `XmlReader` for the UTF-16LE/UTF-8/no-BOM handling.
 4. **`DataSourceReader`**: one `case` in the switch (`:268`), one branch in `Initialize()` (`:107`).
 5. **`DekerekeDataSourcePropertiesDlg`** — the column→field mapping grid, modeled on
    `SFDataSourcePropertiesDlg.cs` (661 lines, but much of that is SFM-only: interlinear parse types,
@@ -275,8 +276,8 @@ the **Windows 11 Parallels VM** (the only VM present). Drive it with `prlctl exe
 involved, so the FlexTools-bridge key `~/.ssh/id_ed25519` stays untouched per standing policy;
 Seth can equally build in Visual Studio. Targets .NET Framework 4.8, x86 (must match `Pa.exe`).
 
-1. **Core library tests** (no PA needed): real Fayu records in both encodings — UTF-16LE+BOM and
-   UTF-8; column enumeration; auto-map results; SFM output (no duplicate markers, no bare newlines,
+1. **Core library tests** (no PA needed): records in every encoding variant — UTF-16LE+BOM (older
+   releases), UTF-8+BOM, and plain UTF-8 with no BOM (current release); column enumeration; auto-map results; SFM output (no duplicate markers, no bare newlines,
    UTF-8 BOM present, `\_sh` header, `\ref` boundaries).
 2. **Cold start:** fresh PA project, add `Fayu_stable.xml`, expect the mapping dialog once, then a
    populated Data Corpus, an auto-generated CV chart, `Pitch` in the Tone column, and audio playing
