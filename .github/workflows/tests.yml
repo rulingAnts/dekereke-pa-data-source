@@ -15,6 +15,19 @@ jobs:
       - name: Run core library tests
         run: dotnet test src/DekerekeToPa.Tests -c Release --logger "console;verbosity=detailed"
 
-  # TODO: windows job that downloads the PA installer, extracts Pa.exe and
-  # SilTools.dll, and builds src/PaDekereke as an artifact. See HANDOFF.md
-  # ("Getting PA assemblies without a PA install").
+  # Type-checks the add-on against the compile-only stubs in src/PaStubs and
+  # src/SilToolsStubs (built from docs/pa-internals/api-surface.md), so PA-facing
+  # compile breakage is caught without a PA install. A green build here proves
+  # the add-on compiles against the documented surface - nothing about run-time
+  # behaviour against real PA. Deliberately NO job downloads the PA installer;
+  # building against real Pa.exe/SilTools.dll stays a manual, on-Windows step
+  # (see HANDOFF.md, "Building the add-on without a PA install").
+  addon-stub-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build add-on against API-surface stubs
+        run: dotnet build src/PaDekereke -c Release -p:UseStubs=true
