@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using DekerekeToPa;
@@ -41,6 +42,7 @@ namespace PaDekereke
 		private readonly DataGridView _grid;
 		private readonly Label _status;
 		private readonly Button _ok;
+		private readonly TextBox _filter;
 
 		/// <summary>The confirmed map. Valid only after ShowDialog() == OK.</summary>
 		public ColumnMap Result { get; private set; }
@@ -54,8 +56,9 @@ namespace PaDekereke
 			MinimizeBox = false;
 			ShowIcon = false;
 			ShowInTaskbar = false;
-			ClientSize = new Size(520, 480);
+			ClientSize = LoadSavedSize(new Size(520, 480));
 			MinimumSize = new Size(420, 320);
+			FormClosing += delegate { SaveSize(); };
 
 			var header = new Label
 			{
@@ -127,9 +130,33 @@ namespace PaDekereke
 			buttons.Controls.Add(cancel);
 			buttons.Controls.Add(_ok);
 
+			// Filter row: narrows the visible Dekereke columns by name. A view aid
+			// only - hidden rows keep their mapping and are still saved.
+			var filterPanel = new Panel
+			{
+				Dock = DockStyle.Top,
+				Height = 30,
+				Padding = new Padding(8, 4, 8, 4)
+			};
+			var filterLabel = new Label
+			{
+				Dock = DockStyle.Left,
+				AutoSize = true,
+				Padding = new Padding(0, 4, 4, 0),
+				Text = "Filter columns:"
+			};
+			_filter = new TextBox { Dock = DockStyle.Fill };
+			_filter.TextChanged += delegate { ApplyFilter(); };
+			filterPanel.Controls.Add(_filter);
+			filterPanel.Controls.Add(filterLabel);
+
+			// Dock layout runs in reverse add order: header docks Top outermost,
+			// then filterPanel docks Top beneath it, buttons and status stack at
+			// the bottom, and the grid fills what is left.
 			Controls.Add(_grid);
 			Controls.Add(_status);
 			Controls.Add(buttons);
+			Controls.Add(filterPanel);
 			Controls.Add(header);
 
 			AcceptButton = _ok;
@@ -202,5 +229,83 @@ namespace PaDekereke
 			DialogResult = DialogResult.OK;
 			Close();
 		}
+
+		/// <summary>
+		/// Shows only the rows whose Dekereke column name contains the filter text
+		/// (case-insensitive). Hidden rows keep their mapping: BuildMap walks every
+		/// row regardless of visibility, so filtering can never lose a choice.
+		/// </summary>
+		private void ApplyFilter()
+		{
+			var text = _filter.Text.Trim();
+
+			try
+			{
+				// The row owning the current cell cannot be hidden - detach first.
+				_grid.EndEdit();
+				_grid.CurrentCell = null;
+
+				foreach (DataGridViewRow row in _grid.Rows)
+				{
+					var column = (string)row.Cells[0].Value;
+					row.Visible = text.Length == 0 ||
+						column.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+				}
+			}
+			catch
+			{
+				// A filter hiccup must never break the dialog; worst case the
+				// row set is momentarily stale until the next keystroke.
+			}
+		}
+
+		#region Window-size persistence
+		// Remembered across sessions in the PaDekereke cache folder (per-user,
+		// always writable) - deliberately not in the PA project folder, since
+		// window size is a user preference, not project data.
+		private static string SizeFilePath
+		{
+			get { return Path.Combine(ConversionCache.RootFolder, "MappingDialog.size"); }
+		}
+
+		private static Size LoadSavedSize(Size fallback)
+		{
+			try
+			{
+				var parts = File.ReadAllText(SizeFilePath).Split(' ');
+				var size = new Size(int.Parse(parts[0]), int.Parse(parts[1]));
+
+				// Clamp to something sane: never larger than the working area,
+				// never smaller than the dialog's minimum (WinForms enforces the
+				// minimum again anyway).
+				var area = Screen.PrimaryScreen.WorkingArea;
+				size.Width = Math.Max(320, Math.Min(size.Width, area.Width));
+				size.Height = Math.Max(240, Math.Min(size.Height, area.Height));
+				return size;
+			}
+			catch
+			{
+				return fallback; // absent or corrupt: first run, use the default
+			}
+		}
+
+		private void SaveSize()
+		{
+			try
+			{
+				if (WindowState != FormWindowState.Normal)
+					return; // don't remember a maximized/minimized size
+
+				Directory.CreateDirectory(ConversionCache.RootFolder);
+				File.WriteAllText(SizeFilePath,
+					ClientSize.Width + " " + ClientSize.Height);
+			}
+			catch
+			{
+				// Read-only or full disk: losing the preference is fine.
+			}
+		}
+
+		#endregion
 	}
 }
