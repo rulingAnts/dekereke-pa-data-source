@@ -145,6 +145,12 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
      instantiated it (missing/wrong AddOns folder, or a strong-name binding
      failure at type load - check with
      `[Reflection.AssemblyName]::GetAssemblyName('...\Pa.exe').FullName`).
+   - **Confirmed live 2026-08-10** on an installed PA 4.1.1 (Win11-ARM VM):
+     the loader instantiated the add-on from a hand-created `AddOns` folder,
+     and the STUB-compiled build bound to the real `Pa.exe`/`SilTools.dll`
+     and executed `App.AddMediatorColleague` - so the shipped PA is not
+     strong-named in a way that blocks stub-built references, and the
+     `api-surface.md` signatures exercised so far are correct at run time.
 
 ## State of the code (as of handoff)
 

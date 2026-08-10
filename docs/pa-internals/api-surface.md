@@ -239,6 +239,14 @@ real PA; say so explicitly when reporting results.
 Implemented as `src/PaStubs` + `src/SilToolsStubs`; `src/PaDekereke` builds
 against them with `dotnet build -p:UseStubs=true`.
 
+**Field confirmation (2026-08-10):** a stub-compiled `PaDekereke.dll` was
+loaded by a real installed PA 4.1.1 - the add-on loader instantiated
+`PaAddOnManager`, the references bound to the installed `Pa.exe`/`SilTools.dll`
+at run time, and `App.AddMediatorColleague(IxCoreColleague)` executed. So
+stub-built binaries are not merely type-checked: they bind against the shipped
+PA (no strong-naming in the way). Run-time correctness of the remaining
+surface still needs the full Windows checklist.
+
 ### Types referenced above but not declared (stub-building gap, found 2026-08)
 
 Two types appear in the declarations above without their own transcription, so
