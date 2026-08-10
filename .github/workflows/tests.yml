@@ -31,3 +31,15 @@ jobs:
           dotnet-version: 8.0.x
       - name: Build add-on against API-surface stubs
         run: dotnet build src/PaDekereke -c Release -p:UseStubs=true
+      # The two DLLs are architecture-neutral managed IL, so this Linux-built
+      # output is exactly what gets installed into <PA>\AddOns\ on Windows.
+      # Compiled against the stubs, so treat every artifact as untested against
+      # real PA until the HANDOFF.md Windows checklist has been run with it.
+      - name: Upload add-on build for manual testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: PaDekereke-addon-stub-build
+          path: |
+            src/PaDekereke/bin/Release/net48/PaDekereke.dll
+            src/PaDekereke/bin/Release/net48/DekerekeToPa.dll
+          if-no-files-found: error
