@@ -181,6 +181,16 @@ be shipped or installed.
 Either way `Microsoft.NETFramework.ReferenceAssemblies` makes net48 compile on
 any OS — compile only; running needs Windows.
 
+## Owner requirement (confirmed 2026-08-10)
+
+Field mapping must offer **common-sense defaults** (the auto-mapper's
+guesses) but be **user-customizable both at import time and later, when
+configuring the data source**. The dialog-on-first-contact covers import
+time; "later" is currently only Shift-held-during-load, which is not
+discoverable — the planned "Dekereke Mappings…" menu item (via
+`App.TMAdapter`, blocked on transcribing `ITMAdapter` from PA source) is
+required, not optional polish.
+
 ## Remaining work, in priority order
 
 1. `dotnet restore && dotnet test src/DekerekeToPa.Tests` — fix to green.
