@@ -208,14 +208,15 @@
 		text-align: center;
 		color: var(--muted);
 		font-size: .88rem;
-		margin: 0 0 2.5rem;
+		max-width: 40rem;
+		margin: 0 auto 1rem;
 	}
 
 	/* ---------- the stage: the screen recording, front and centre ----------
 	   Holds the real recording once media/demo.mp4 exists, and the schematic
 	   above until then, so the page never shows a broken or empty frame. */
 
-	.stage-wrap { position: relative; margin: 2.75rem 0 1.5rem; }
+	.stage-wrap { position: relative; margin: 2.4rem 0 1.5rem; }
 	.stage-wrap::before {
 		content: "";
 		position: absolute;
@@ -269,7 +270,11 @@
 
 	/* ---------- call to action ---------- */
 
-	.cta { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.15rem; }
+	.cta {
+		display: flex; flex-wrap: wrap; align-items: center;
+		gap: .8rem 1.15rem;
+		margin-top: 1.9rem;
+	}
 
 	.btn {
 		display: inline-block;
@@ -372,9 +377,18 @@
 	<p class="eyebrow">Phonology Assistant add-on</p>
 	<h1>Your Dekereke database, live in Phonology&nbsp;Assistant</h1>
 	<p class="lede">
-		Add your Dekereke <code>.xml</code> once. Then keep working in Dekereke — switch back
-		to Phonology Assistant and it has already reloaded itself.
+		SIL&rsquo;s Phonology Assistant does not read Dekereke databases on its own. This
+		free add-on teaches it to &mdash; live: add your <code>.xml</code> once, keep working
+		in Dekereke, and Phonology Assistant reloads itself when you switch back.
 	</p>
+
+	<div class="cta">
+		<a class="btn" href="https://github.com/rulingAnts/dekereke-pa-data-source/releases/latest">Download for Windows</a>
+		<span class="cta-note">
+			Free and open source &middot;
+			<a href="https://github.com/rulingAnts/dekereke-pa-data-source">source on GitHub</a>
+		</span>
+	</div>
 
 	<div class="stage-wrap">
 		<div class="stage is-placeholder" id="stage">
@@ -410,15 +424,11 @@
 			</div>
 		</div>
 	</div>
-	<p class="demo-caption">No re-import, no export step, no stale snapshot.</p>
-
-	<div class="cta">
-		<a class="btn" href="https://github.com/rulingAnts/dekereke-pa-data-source/releases/latest">Download for Windows</a>
-		<span class="cta-note">
-			Free and open source &middot;
-			<a href="https://github.com/rulingAnts/dekereke-pa-data-source">source on GitHub</a>
-		</span>
-	</div>
+	<p class="demo-caption">
+		No re-import, no export step, no stale snapshot. The
+		<em>Add&nbsp;&rarr;&nbsp;&ldquo;Dekereke Data Source&hellip;&rdquo;</em> option in the
+		recording is this add-on at work &mdash; stock Phonology Assistant doesn&rsquo;t have it.
+	</p>
 </header>
 
 <main class="wrap">
