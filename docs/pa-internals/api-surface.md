@@ -319,3 +319,35 @@ Menu mechanics (all verified in source):
 - `PaDataSource(fields, filename)` types a well-formed non-PAXML XML file as
   `DataSourceType.XML` (`PaDataSource.cs:351-379`) — programmatically adding a
   Dekereke file this way is exactly equivalent to the hand-edited `.pap` entry.
+
+## `ProjectSettingsDlg` internals — reached by REFLECTION, not by reference
+
+The Add dropdown in project settings (**and in the new-project wizard — same
+class**) is *not* adapter-managed, so `ITMAdapter` cannot reach it. It is a
+plain WinForms `ContextMenuStrip` held in a private field and shown by hand
+under the Add button (`ProjectSettingsDlg.cs:722`). `ProjectSettingsDlgPatcher`
+therefore finds the live dialog via `Application.Idle` +
+`Application.OpenForms` and injects an item. These are the private members it
+binds to by name — **this list is the add-on's only version-fragile coupling**;
+verify it against PA source when targeting a new PA release:
+
+| Member | Declared | Used for |
+|---|---|---|
+| `mnuAdd` (`ContextMenuStrip`) | `…Designer.cs:641` | the dropdown to inject into |
+| `mnuAddOtherDataSource` (item `Name`) | `…Designer.cs:283` | insert position (our item goes below it) |
+| `_dataSources` (`List<PaDataSource>`) | `…Dlg.cs:33` | the dialog's pending list; reassigned in the ctor for existing projects, so read it fresh |
+| `m_grid` (`SilTools.SilGrid` : `DataGridView`) | `…Designer.cs:644` | row count, focus, `IsDirty` (`SilGrid.cs:102`) |
+| `LoadGrid(int preferredRow)` | `…Dlg.cs:239` | redraw after adding (pass the pre-add row count, as PA does at `:647`) |
+| `Project` (public property) | `…Dlg.cs:36` | `Project.Fields` for the `PaDataSource` ctor; `new PaProject(true)` for a new project (`:95`), never null |
+
+Every lookup is null-checked and every entry point catches: a rename makes the
+menu item silently absent (logged once), never a crash.
+
+**The XSLT placeholder.** `ProjectSettingsDlg`'s OK handler rejects an
+`XML`-typed source whose `XSLTFile` is empty (`:362`) — the wall in trap 7. The
+add-on sets `XSLTFile` to an inert marker string. This is safe because nothing
+consumes the value: the reader skips XML sources entirely
+(`DataSourceReader.cs:274`), the grid column displaying it is hidden (`:228`),
+and the only remaining uses are the hidden Specify-XSLT button (`:861`), that
+column (`:990`) and `PaDataSource.Copy()`. The whole-file search for `XSLTFile`
+across PA returns exactly those five sites.

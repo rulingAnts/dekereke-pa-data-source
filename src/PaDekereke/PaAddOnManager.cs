@@ -144,6 +144,11 @@ namespace PaDekereke
 
 			App.AddMediatorColleague(this);
 			Log("registered with PA mediator; waiting for BeforeLoadingDataSources");
+
+			// Adds "Dekereke Data Source..." to the Add dropdown of the project
+			// settings dialog, including the new-project wizard. Independent of
+			// the mediator: that menu is plain WinForms, not adapter-managed.
+			ProjectSettingsDlgPatcher.Start();
 		}
 
 		#region IxCoreColleague
@@ -394,7 +399,13 @@ namespace PaDekereke
 			// the full pipeline, so first contact shows the mapping dialog and
 			// the record cache refreshes; it also broadcasts
 			// "DataSourcesModified" so PA's views update.
-			project.DataSources.Add(new PaDataSource(project.Fields, path));
+			var ds = new PaDataSource(project.Fields, path);
+
+			// Lets PA's project settings dialog accept this source later; see
+			// ProjectSettingsDlgPatcher.XsltPlaceholder. Never read by anything.
+			ds.XSLTFile = ProjectSettingsDlgPatcher.XsltPlaceholder;
+
+			project.DataSources.Add(ds);
 			project.Save();
 			project.ReloadDataSources();
 		}
@@ -407,6 +418,12 @@ namespace PaDekereke
 		{
 			var dekerekePath = ds.SourceFile;
 			var db = DekerekeFile.Read(dekerekePath);
+
+			// Heal sources that predate this (or were hand-added to the .pap):
+			// without a non-empty XSLTFile, PA's project settings dialog refuses
+			// to close on OK. Inert otherwise - see the constant's remarks.
+			if (string.IsNullOrEmpty(ds.XSLTFile))
+				ds.XSLTFile = ProjectSettingsDlgPatcher.XsltPlaceholder;
 
 			var map = GetOrCreateMap(project, db, forceDialog);
 			if (map == null || !map.HasPhonetic)
@@ -585,7 +602,7 @@ namespace PaDekereke
 		/// and deliberately does not depend on any PA or DekerekeToPa type so it
 		/// works even when those references fail to bind.
 		/// </summary>
-		private static void Log(string message)
+		internal static void Log(string message)
 		{
 			try
 			{

@@ -223,15 +223,29 @@ any OS — compile only; running needs Windows.
    so this means an add-on-owned "Add Dekereke Data Source…" menu item with
    its own picker + Sniff validation, which appends the `PaDataSource`,
    saves, and triggers a reload.
-   **IMPLEMENTED 2026-08-10** (`ITMAdapter` transcribed from a source clone —
-   see `api-surface.md`, "Menus"): Tools menu → "Add Dekereke Data Source…",
-   placed before Options; greyed until a project is open; picker filtered to
-   `*.xml`; Sniff-validated with a clear message on rejection; duplicate-path
-   check; then `DataSources.Add(new PaDataSource(fields, path))` +
-   `project.Save()` + `ReloadDataSources()` — the standard pipeline, mapping
-   dialog on first contact, **no `.pap` hand-editing**. Compile-checked only;
-   needs the live PA pass. Part B is what would put "Dekereke (*.xml)" in
-   PA's native picker.
+   **IMPLEMENTED 2026-08-10, two entry points.** The owner's requirement is
+   specifically that it work **while creating a NEW project**, not only for an
+   already-open one:
+   - **Project settings / new-project wizard → Add ▾ → "Dekereke Data
+     Source…"** — the primary route, and the one the owner asked for. That
+     dropdown is plain WinForms, not adapter-managed, so it is reached by
+     runtime injection (`ProjectSettingsDlgPatcher`; the private members it
+     binds to, and the `XSLTFile` placeholder that gets a Dekereke source past
+     the dialog's OK validation, are tabulated in `api-surface.md`).
+   - **Tools → "Add Dekereke Data Source…"** — secondary, for adding to an
+     already-open project without reopening settings; a proper `ITMAdapter`
+     menu item, greyed until a project is open.
+
+   Both filter the picker to `*.xml`, Sniff-validate (root `phon_data`) with a
+   clear message on rejection, and reject duplicates. **No `.pap` hand-editing
+   in either.** Compile-checked only; both need the live PA pass.
+   Part B is what would put "Dekereke (*.xml)" in PA's native picker.
+
+   Fallback if injection is ever unavailable (a future PA renames the private
+   members): an external app that writes a `.pap` and launches
+   `Pa.exe <project>.pap` — PA accepts a project file on the command line
+   (`PaMainWnd.cs:165`). Rejected as the primary route because it means owning
+   PA's project-file schema; kept as the documented escape hatch.
 
 ## Remaining work, in priority order
 
