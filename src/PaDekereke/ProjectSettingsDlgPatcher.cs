@@ -207,8 +207,13 @@ namespace PaDekereke
 					return;
 				}
 
-				var ds = new PaDataSource(project.Fields, path);
-				ds.XSLTFile = XsltPlaceholder;
+				// Confirms the mapping and produces a source PA's OK-button
+				// validation accepts (it demands a phonetic FieldMapping, which
+				// the PaDataSource ctor never builds for an XML file).
+				PaDataSource ds;
+				if (!PaAddOnManager.TryCreateDekerekeDataSource(project, path, dlg, out ds))
+					return;
+
 				dataSources.Add(ds);
 
 				RefreshGrid(dlg);

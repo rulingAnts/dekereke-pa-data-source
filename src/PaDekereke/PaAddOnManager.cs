@@ -95,6 +95,13 @@ namespace PaDekereke
 		private static readonly HashSet<string> s_dialogOpenFor =
 			new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+		// Mappings confirmed while ADDING a database, before the project has a
+		// folder to save them in (a new project has no file name until the
+		// settings dialog's OK). The first load picks them up from here and
+		// persists them, so the user is never asked twice for one database.
+		private static readonly Dictionary<string, ColumnMap> s_pendingMaps =
+			new Dictionary<string, ColumnMap>(StringComparer.OrdinalIgnoreCase);
+
 		/// ------------------------------------------------------------------------------------
 		public PaAddOnManager()
 		{
@@ -314,6 +321,84 @@ namespace PaDekereke
 
 		#endregion
 
+		#region Creating a Dekereke data source (shared by both entry points)
+		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// Builds a PaDataSource for a Dekereke file that PA's project settings
+		/// dialog will accept, confirming the column mapping with the user first.
+		///
+		/// Two things PA requires of any data source it is handed, both of which
+		/// a raw <c>new PaDataSource(fields, xmlPath)</c> fails:
+		///  - a phonetic FieldMapping - SaveChanges rejects the project without
+		///    one (ProjectSettingsDlg.cs:419) and the constructor builds default
+		///    mappings only for SFM/Toolbox files, leaving XML ones empty
+		///    (PaDataSource.cs:84-105);
+		///  - every mapping's Field must be non-null, since SaveChanges reads
+		///    mapping.Field.Name unguarded (ProjectSettingsDlg.cs:480).
+		///
+		/// Showing the mapping dialog here is also the behaviour the owner asked
+		/// for: defaults guessed, confirmable at import. The confirmed map is
+		/// remembered so the load that follows does not ask again.
+		/// </summary>
+		/// <returns>false if the user cancelled; nothing has been changed then.</returns>
+		internal static bool TryCreateDekerekeDataSource(PaProject project, string path,
+			IWin32Window owner, out PaDataSource dataSource)
+		{
+			dataSource = null;
+
+			DekerekeDatabase db;
+			var oldCursor = Cursor.Current;
+			try
+			{
+				Cursor.Current = Cursors.WaitCursor;
+				db = DekerekeFile.Read(path);
+			}
+			finally
+			{
+				Cursor.Current = oldCursor;
+			}
+
+			var map = AutoMapper.Map(db.Columns);
+			Log("adding '" + path + "': " + db.Records.Count + " record(s), " +
+				db.Columns.Count + " column(s); confirming mapping with the user");
+
+			using (var dlg = new MappingDialog(db, map))
+			{
+				if (dlg.ShowDialog(owner) != DialogResult.OK)
+				{
+					Log("add cancelled at the mapping dialog");
+					return false;
+				}
+
+				map = dlg.Result;
+			}
+
+			var ds = new PaDataSource(project.Fields, path);
+
+			// Gets the source past the dialog's XSLT check; inert everywhere
+			// else - see ProjectSettingsDlgPatcher.XsltPlaceholder.
+			ds.XSLTFile = ProjectSettingsDlgPatcher.XsltPlaceholder;
+
+			ds.FieldMappings = BuildFieldMappings(project, map);
+			if (!ds.FieldMappings.Any(m => m.PaFieldName == PaFieldNames.Phonetic ||
+				(m.Field != null && m.Field.Name == PaFieldNames.Phonetic)))
+			{
+				// Only reachable if the project has no Phonetic field at all.
+				Log("ERROR: the project has no Phonetic field; cannot add " + path);
+				MessageBox.Show(owner,
+					"This project has no Phonetic field, so a Dekereke database cannot be " +
+					"added to it.", DialogCaption, MessageBoxButtons.OK, MessageBoxIcon.Error);
+				return false;
+			}
+
+			s_pendingMaps[path] = map;
+			dataSource = ds;
+			Log("prepared Dekereke data source with " + ds.FieldMappings.Count + " field mapping(s)");
+			return true;
+		}
+
+		#endregion
+
 		#region Add-data-source menu machinery
 		/// ------------------------------------------------------------------------------------
 		private void AddMenuItems()
@@ -393,17 +478,15 @@ namespace PaDekereke
 
 			Log("adding Dekereke data source via menu: " + path);
 
-			// The PaDataSource(fields, filename) ctor types a non-PAXML XML file
-			// as DataSourceType.XML (PaDataSource.cs:351-379) - the exact shape
-			// the convert/swap hook picks up on load. ReloadDataSources() runs
-			// the full pipeline, so first contact shows the mapping dialog and
-			// the record cache refreshes; it also broadcasts
-			// "DataSourcesModified" so PA's views update.
-			var ds = new PaDataSource(project.Fields, path);
-
-			// Lets PA's project settings dialog accept this source later; see
-			// ProjectSettingsDlgPatcher.XsltPlaceholder. Never read by anything.
-			ds.XSLTFile = ProjectSettingsDlgPatcher.XsltPlaceholder;
+			// TryCreateDekerekeDataSource confirms the mapping and returns a
+			// source PA will accept. The ctor inside it types a non-PAXML XML
+			// file as DataSourceType.XML (PaDataSource.cs:351-379) - the exact
+			// shape the convert/swap hook picks up on load. ReloadDataSources()
+			// then runs the full pipeline and broadcasts "DataSourcesModified"
+			// so PA's views update.
+			PaDataSource ds;
+			if (!TryCreateDekerekeDataSource(project, path, App.MainForm, out ds))
+				return;
 
 			project.DataSources.Add(ds);
 			project.Save();
@@ -489,7 +572,7 @@ namespace PaDekereke
 		}
 
 		/// ------------------------------------------------------------------------------------
-		private static List<FieldMapping> BuildFieldMappings(PaProject project, ColumnMap map)
+		internal static List<FieldMapping> BuildFieldMappings(PaProject project, ColumnMap map)
 		{
 			var mappings = new List<FieldMapping>();
 
@@ -531,7 +614,18 @@ namespace PaDekereke
 			bool isNew = map == null;
 			bool changed = false;
 
-			if (isNew)
+			ColumnMap pending;
+			if (isNew && s_pendingMaps.TryGetValue(db.SourcePath, out pending))
+			{
+				// Confirmed moments ago, when the user added this database in a
+				// project that had nowhere to save it yet. Persist it below and
+				// do NOT prompt a second time.
+				map = pending;
+				isNew = false;
+				changed = true;
+				Log("using the mapping confirmed when this database was added");
+			}
+			else if (isNew)
 			{
 				map = AutoMapper.Map(db.Columns);
 				changed = true;
@@ -588,8 +682,18 @@ namespace PaDekereke
 			if (changed)
 			{
 				store.SetFor(db.SourcePath, map);
-				try { store.Save(storePath); }
-				catch { /* read-only project folder: run with the in-memory map */ }
+				try
+				{
+					store.Save(storePath);
+
+					// Safely on disk now; the hand-off copy is no longer needed.
+					s_pendingMaps.Remove(db.SourcePath);
+				}
+				catch
+				{
+					// Read-only project folder: run with the in-memory map, and
+					// keep the pending copy so the next load still finds it.
+				}
 			}
 
 			return map;

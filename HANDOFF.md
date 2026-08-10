@@ -238,7 +238,23 @@ any OS — compile only; running needs Windows.
 
    Both filter the picker to `*.xml`, Sniff-validate (root `phon_data`) with a
    clear message on rejection, and reject duplicates. **No `.pap` hand-editing
-   in either.** Compile-checked only; both need the live PA pass.
+   in either.**
+
+   Both then go through `TryCreateDekerekeDataSource`, which reads the
+   database, auto-maps, **confirms the mapping in the dialog right there at
+   import** (requirement 1's "at import time"), and hands back a
+   `PaDataSource` carrying real `FieldMappings`. That last part is not
+   optional: PA's OK button demands a phonetic mapping and then dereferences
+   every mapping's `Field` — and the `PaDataSource` ctor leaves `FieldMappings`
+   EMPTY for XML files. All three gates are tabulated in `api-surface.md`.
+   Because a new project has no folder to save a mapping in until OK, the
+   confirmed map is held in memory (`s_pendingMaps`) and picked up by the load
+   that follows, which persists it — so **exactly one mapping dialog per
+   database**, at the moment the user adds it.
+
+   Live status: the Add-dropdown item and the picker are confirmed working on
+   real PA (2026-08-10); the mapping/commit path after it is compile-checked
+   only.
    Part B is what would put "Dekereke (*.xml)" in PA's native picker.
 
    Fallback if injection is ever unavailable (a future PA renames the private

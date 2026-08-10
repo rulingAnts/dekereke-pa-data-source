@@ -343,6 +343,30 @@ verify it against PA source when targeting a new PA release:
 Every lookup is null-checked and every entry point catches: a rename makes the
 menu item silently absent (logged once), never a crash.
 
+### The three gates a hand-built data source must pass
+
+Clicking OK in project settings runs `ValidateProjectData` then `SaveChanges`.
+A `PaDataSource` built by an add-on has to satisfy all three, and a raw
+`new PaDataSource(fields, xmlPath)` satisfies **none** of them:
+
+1. **XSLT** — an `XML`-typed source with an empty `XSLTFile` is rejected
+   (`:362`). See the placeholder note below.
+2. **A phonetic mapping** — `FieldMapping.IsPhoneticMapped` requires some
+   mapping whose `Field.Type == FieldType.Phonetic` (`FieldMapping.cs:168`,
+   called at `:419`). The `PaDataSource(fields, filename)` ctor builds default
+   mappings **only for SFM/Toolbox files**; for anything that parses as XML it
+   returns with `FieldMappings` still the empty list from the parameterless
+   ctor (`PaDataSource.cs:61-105`). So an XML source always arrives unmapped
+   and must be given mappings before OK.
+3. **Non-null `Field` on every mapping** — `SaveChanges` ends with
+   `Project.DataSources.SelectMany(ds => ds.FieldMappings)` reading
+   `mapping.Field.Name` with no null guard (`:480`). A mapping whose `Field`
+   was never resolved crashes PA on OK. Build mappings only from `PaField`
+   objects actually found in `project.Fields`.
+
+(A fourth gate, a required `SfmRecordMarker` at `:425`, applies only to
+`SFM`/`Toolbox` types and so never fires for a Dekereke source.)
+
 **The XSLT placeholder.** `ProjectSettingsDlg`'s OK handler rejects an
 `XML`-typed source whose `XSLTFile` is empty (`:362`) — the wall in trap 7. The
 add-on sets `XSLTFile` to an inert marker string. This is safe because nothing
