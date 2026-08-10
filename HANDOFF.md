@@ -151,6 +151,24 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
      and executed `App.AddMediatorColleague` - so the shipped PA is not
      strong-named in a way that blocks stub-built references, and the
      `api-surface.md` signatures exercised so far are correct at run time.
+   - **The `.pap` workaround itself is also confirmed live** (same day, real
+     Fayu database, 944 records): project open → mapping dialog → convert →
+     PA read the swap → restore, end to end. It exposed trap 8 below.
+8. **`ReadAddOns` runs once per main-window construction, and loads can
+   nest** (observed live, 2026-08-10). Opening a project constructs a new
+   `PaMainWnd`, which runs `App.ReadAddOns()` again and instantiates a
+   fresh `PaAddOnManager` - N project windows = N+1 live instances, all
+   registered as mediator colleagues. Worse: a modal dialog shown inside
+   `OnBeforeLoadingDataSources` pumps messages, and PA started a second
+   complete load pipeline from inside it - log evidence: two
+   `BeforeLoadingDataSources` broadcasts 2 s apart, both before the first
+   dialog's OK, the two dialogs' conversions then resolving LIFO. Any PA
+   add-on must therefore: register only its first instance (process-wide
+   singleton), keep per-load state re-entrancy-safe (the swap list is a
+   LIFO stack here), and refuse to stack a second dialog for a database
+   whose dialog is already open (the nested pass silently uses the
+   auto-map; the outer load's read finishes last and its confirmed result
+   wins). All three are implemented in `PaAddOnManager`.
 
 ## State of the code (as of handoff)
 
@@ -181,15 +199,24 @@ be shipped or installed.
 Either way `Microsoft.NETFramework.ReferenceAssemblies` makes net48 compile on
 any OS — compile only; running needs Windows.
 
-## Owner requirement (confirmed 2026-08-10)
+## Owner requirements (confirmed 2026-08-10)
 
-Field mapping must offer **common-sense defaults** (the auto-mapper's
-guesses) but be **user-customizable both at import time and later, when
-configuring the data source**. The dialog-on-first-contact covers import
-time; "later" is currently only Shift-held-during-load, which is not
-discoverable — the planned "Dekereke Mappings…" menu item (via
-`App.TMAdapter`, blocked on transcribing `ITMAdapter` from PA source) is
-required, not optional polish.
+1. Field mapping must offer **common-sense defaults** (the auto-mapper's
+   guesses) but be **user-customizable both at import time and later, when
+   configuring the data source**. The dialog-on-first-contact covers import
+   time; "later" is currently only Shift-held-during-load, which is not
+   discoverable — the planned "Dekereke Mappings…" menu item (via
+   `App.TMAdapter`, blocked on transcribing `ITMAdapter` from PA source) is
+   required, not optional polish.
+2. **A discoverable "add a Dekereke file" path with a `*.xml` file type,
+   validating that the picked XML really is Dekereke** (root `phon_data`,
+   i.e. `DekerekeFile.Sniff`) before accepting it. PA's own add-data-source
+   picker cannot be extended by an add-on (its filter is hard-coded in
+   `ProjectSettingsDlg`, and XML picks dead-end at the XSLT error — trap 7),
+   so this means an add-on-owned "Add Dekereke Data Source…" menu item with
+   its own picker + Sniff validation, which appends the `PaDataSource`,
+   saves, and triggers a reload. Same `ITMAdapter` dependency as (1).
+   Part B is what would put "Dekereke (*.xml)" in PA's native picker.
 
 ## Remaining work, in priority order
 

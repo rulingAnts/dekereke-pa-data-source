@@ -68,11 +68,34 @@ namespace PaDekereke
 			public string DekerekePath;
 		}
 
-		private List<Swap> m_swaps;
+		private static PaAddOnManager s_instance;
+
+		// Loads can NEST: a modal dialog shown inside OnBeforeLoadingDataSources
+		// pumps messages, and PA can start a second complete load pipeline from
+		// inside it (observed live, 2026-08-10). Per-load swap lists therefore
+		// live on a stack, paired LIFO with each Before/After broadcast.
+		private readonly Stack<List<Swap>> m_swapStack = new Stack<List<Swap>>();
+
+		// Dekereke paths whose mapping dialog is open right now, so a nested
+		// load of the same database silently uses the auto-map instead of
+		// stacking a second identical dialog on top of the first.
+		private static readonly HashSet<string> s_dialogOpenFor =
+			new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
 		/// ------------------------------------------------------------------------------------
 		public PaAddOnManager()
 		{
+			// PA runs ReadAddOns once per main-window construction, so this class
+			// is instantiated again every time a project window opens (observed
+			// live, 2026-08-10). Only the first instance registers; later ones
+			// stand down, or every load would be handled - and prompted - twice.
+			if (s_instance != null)
+			{
+				Log("constructed again (PA re-ran ReadAddOns); duplicate instance standing down");
+				return;
+			}
+			s_instance = this;
+
 			// PA swallows every add-on exception, so failure is silent by design;
 			// this line is the proof the assembly loaded and the loader ran us.
 			Log("constructed (assembly loaded, PaAddOnManager instantiated by PA)");
@@ -130,7 +153,8 @@ namespace PaDekereke
 			Log("BeforeLoadingDataSources: project '" + project.Name + "', " +
 				project.DataSources.Count + " data source(s)");
 
-			m_swaps = new List<Swap>();
+			var swaps = new List<Swap>();
+			m_swapStack.Push(swaps);
 
 			// Hold SHIFT during project load to force the mapping dialog open.
 			bool forceDialog = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
@@ -150,7 +174,7 @@ namespace PaDekereke
 
 					var swap = ConvertAndSwap(project, i, ds, forceDialog);
 					if (swap != null)
-						m_swaps.Add(swap);
+						swaps.Add(swap);
 				}
 				catch (Exception ex)
 				{
@@ -167,12 +191,17 @@ namespace PaDekereke
 		protected bool OnAfterLoadingDataSources(object args)
 		{
 			var project = args as PaProject;
-			if (project == null || m_swaps == null)
+			if (project == null || m_swapStack.Count == 0)
 				return false;
 
+			// LIFO pairing with OnBefore matches the nested-load order observed
+			// live (Before1, Before2, After2, After1). Restore is swap-driven
+			// (each Swap carries its own object references), so even an
+			// out-of-order pairing restores the right entries.
+			var swaps = m_swapStack.Pop();
 			bool restoredAny = false;
 
-			foreach (var swap in m_swaps)
+			foreach (var swap in swaps)
 			{
 				try
 				{
@@ -185,8 +214,6 @@ namespace PaDekereke
 					ShowError(swap.DekerekePath, ex);
 				}
 			}
-
-			m_swaps = null;
 
 			// PA can save the .pap DURING the load (ProjectInventoryBuilder.cs:221
 			// saves on the first-ever load of a project). If that happened, the temp
@@ -333,15 +360,40 @@ namespace PaDekereke
 			// explicit request (SHIFT held during load).
 			if (isNew || !map.HasPhonetic || forceDialog)
 			{
-				App.CloseSplashScreen();
-
-				using (var dlg = new MappingDialog(db, map))
+				// A second load can start inside this dialog's message pump (PA
+				// re-enters; see the nested-load note on m_swapStack). Never stack
+				// a second identical dialog: the nested pass silently uses the
+				// auto-map, and the outer pass - whose read finishes last and
+				// wins - carries the user's confirmed result.
+				if (!s_dialogOpenFor.Add(db.SourcePath))
 				{
-					if (dlg.ShowDialog() != DialogResult.OK)
-						return isNew ? null : map; // cancel: keep old map, or skip if none
+					Log("mapping dialog already open for this database; nested load uses the auto-map");
+					return map.HasPhonetic ? map : null;
+				}
 
-					map = dlg.Result;
-					changed = true;
+				try
+				{
+					Log("showing mapping dialog (" +
+						(isNew ? "first contact" :
+						!map.HasPhonetic ? "phonetic unmapped" : "Shift held") + ")");
+					App.CloseSplashScreen();
+
+					using (var dlg = new MappingDialog(db, map))
+					{
+						if (dlg.ShowDialog() != DialogResult.OK)
+						{
+							Log("mapping dialog cancelled");
+							return isNew ? null : map; // cancel: keep old map, or skip if none
+						}
+
+						map = dlg.Result;
+						changed = true;
+						Log("mapping dialog confirmed (" + map.Mappings.Count + " column(s) mapped)");
+					}
+				}
+				finally
+				{
+					s_dialogOpenFor.Remove(db.SourcePath);
 				}
 			}
 
