@@ -232,58 +232,6 @@
 		box-shadow: var(--shadow-lg);
 	}
 
-	.stage-bar {
-		display: flex;
-		align-items: center;
-		gap: .7rem;
-		padding: .6rem .9rem;
-		background: var(--sunken);
-		border-bottom: 1px solid var(--border);
-	}
-
-	.lights { display: flex; gap: .38rem; flex: none; }
-	.lights i {
-		width: .62rem; height: .62rem; border-radius: 50%;
-		background: var(--border);
-	}
-
-	.stage-title {
-		font-family: var(--mono);
-		font-size: .72rem;
-		letter-spacing: .07em;
-		text-transform: uppercase;
-		color: var(--muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.badge {
-		margin-left: auto;
-		display: inline-flex;
-		align-items: center;
-		gap: .38rem;
-		flex: none;
-		font-family: var(--mono);
-		font-size: .66rem;
-		letter-spacing: .1em;
-		text-transform: uppercase;
-		color: var(--live);
-		background: color-mix(in srgb, var(--live) 13%, transparent);
-		border: 1px solid color-mix(in srgb, var(--live) 32%, transparent);
-		border-radius: 999px;
-		padding: .18rem .55rem;
-	}
-	.badge-dot {
-		width: .42rem; height: .42rem; border-radius: 50%;
-		background: var(--live);
-		animation: beat 2.4s ease-in-out infinite;
-	}
-	@keyframes beat {
-		0%, 100% { opacity: .4; transform: scale(.82); }
-		50% { opacity: 1; transform: scale(1); }
-	}
-
 	.media { position: relative; background: var(--sunken); }
 	.media video { display: none; width: 100%; height: auto; vertical-align: middle; }
 
@@ -335,10 +283,6 @@
 		padding-left: .2rem;
 	}
 	.play .hint { font-weight: 400; font-size: .82rem; color: var(--muted); }
-
-	@media (prefers-reduced-motion: reduce) {
-		.badge-dot { animation: none; opacity: 1; }
-	}
 
 	/* ---------- call to action ---------- */
 
@@ -451,11 +395,6 @@
 
 	<div class="stage-wrap">
 		<div class="stage is-placeholder" id="stage">
-			<div class="stage-bar">
-				<span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
-				<span class="stage-title">Dekereke &rarr; Phonology Assistant</span>
-				<span class="badge"><span class="badge-dot" aria-hidden="true"></span>Live</span>
-			</div>
 			<div class="media">
 				<video id="demo-video" muted loop playsinline preload="none"
 				       aria-label="Editing a form in Dekereke, then Phonology Assistant reloading by itself"></video>
@@ -483,12 +422,12 @@
 							</div>
 						</div>
 					</div>
-					<p class="ph-note">Schematic &mdash; the screen recording goes here.</p>
+					<p class="ph-note">Dekereke on the left, Phonology Assistant on the right.</p>
 				</div>
 				<button class="play" id="play" type="button">
 					<span class="tri" aria-hidden="true">&#9654;</span>
 					<span>Watch the demo</span>
-					<span class="hint">45&nbsp;s &middot; no sound</span>
+					<span class="hint">silent walkthrough</span>
 				</button>
 			</div>
 		</div>

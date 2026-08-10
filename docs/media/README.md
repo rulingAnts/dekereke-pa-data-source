@@ -1,10 +1,22 @@
 # Site media
 
+`demo.mp4` here is the walkthrough on the landing page: 1112×720, 15 fps, no
+audio track, 1 min 32 s, **2.4 MB**. It came from a 45.9 MB screen capture —
+the whole difference was the capture running at **120 fps**, which a screen
+recording never needs. Re-encoding at 15 fps cut it about tenfold; resolution
+was left untouched so the UI text stays sharp.
+
+It is trimmed from 21.5 s to 113.5 s of the original: the opening carried the
+Windows desktop and a macOS *"Record Screen" is accessing your screen*
+notification (which sits in the top-right until 21 s), and the tail caught the
+switch back to the host Mac desktop at about 115 s. Both ends were located by
+sampling frames rather than guessed — if you re-cut this, check the top-right
+corner across the whole clip before publishing.
+
 The landing page takes the first of these it can find:
 
-1. **`demo.mp4` in this folder** — a small re-encoded copy. Cheap enough to
-   autoplay as a silent loop, so the hero feels live. This is the one to aim
-   for.
+1. **`demo.mp4` in this folder** — small enough to autoplay as a silent loop,
+   which is what makes the hero feel live. This is the one in use.
 2. **The full recording on the project CDN** (URL in the script at the bottom
    of `../index.html`). Never fetched until the visitor clicks Play, because
    handing tens of megabytes to someone on a field connection uninvited is not
