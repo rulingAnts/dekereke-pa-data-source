@@ -4,7 +4,7 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.0] — 2026-08-10
 
 **Working end to end against a live Phonology Assistant 4.1.1 install**
 (2026-08-10): a real ~1000-record Dekereke database was added through PA's own
