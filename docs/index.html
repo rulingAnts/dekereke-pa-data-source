@@ -203,6 +203,20 @@
 		margin: 0 0 2.5rem;
 	}
 
+	/* A real screen recording replaces the schematic above when
+	   media/demo.mp4 exists; see the script at the end of the page. */
+	.screencast { display: none; margin: 2.5rem 0 .8rem; }
+	.screencast.ready { display: block; }
+	.screencast video {
+		display: block;
+		width: 100%;
+		height: auto;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		box-shadow: var(--shadow);
+		background: var(--sunken);
+	}
+
 	/* ---------- call to action ---------- */
 
 	.cta { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.15rem; }
@@ -312,8 +326,14 @@
 		to Phonology Assistant and it has already reloaded itself.
 	</p>
 
-	<div class="demo">
-		<div class="pane">
+	<figure class="screencast" id="screencast">
+		<video id="demo-video" muted loop playsinline preload="metadata" controls
+		       aria-label="Editing a form in Dekereke and watching Phonology Assistant reload itself">
+			<source src="media/demo.mp4" type="video/mp4">
+		</video>
+	</figure>
+
+	<div class="demo" id="schematic">
 			<div class="pane-head"><span>Dekereke &mdash; Fayu_stable.xml</span></div>
 			<div class="pane-body">
 				<span class="tag">&lt;Gloss&gt;</span><span class="val">gecko</span><span class="tag">&lt;/Gloss&gt;</span><br>
@@ -448,6 +468,34 @@
 	</p>
 	<p><a href="https://github.com/rulingAnts/dekereke-pa-data-source">github.com/rulingAnts/dekereke-pa-data-source</a></p>
 </footer>
+
+<script>
+	// Show the screen recording only if docs/media/demo.mp4 is actually
+	// present; otherwise the schematic above stands in. Drop the file in and
+	// the page switches over on its own - nothing else to edit.
+	(function () {
+		var video = document.getElementById('demo-video');
+		var figure = document.getElementById('screencast');
+		var schematic = document.getElementById('schematic');
+		if (!video || !figure || !schematic) return;
+
+		video.addEventListener('loadedmetadata', function () {
+			figure.classList.add('ready');
+			schematic.style.display = 'none';
+
+			// Autoplay only a silent, short loop, and only when motion is welcome.
+			var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if (!still && video.duration && video.duration <= 45) {
+				video.setAttribute('autoplay', '');
+				var attempt = video.play();
+				if (attempt && attempt.catch) attempt.catch(function () { /* blocked: controls remain */ });
+			}
+		});
+
+		// Missing or undecodable file: leave the schematic in place.
+		video.addEventListener('error', function () { figure.remove(); }, true);
+	})();
+</script>
 
 </body>
 </html>
