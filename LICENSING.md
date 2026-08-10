@@ -1,8 +1,11 @@
 # Licensing
 
 This project is licensed under the **GNU Affero General Public License v3.0 or
-later** (AGPL-3.0-or-later). The full text is in [LICENSE](LICENSE); every
-source file carries an SPDX header.
+later** (AGPL-3.0-or-later), with one deliberate exception: the core library
+in `src/DekerekeToPa/` is **dual-licensed AGPL-3.0-or-later OR MIT**, at the
+recipient's option. The full texts are in [LICENSE](LICENSE) and
+[LICENSE-MIT](LICENSE-MIT); every source file carries an SPDX header saying
+which terms apply to it.
 
 Copyright © 2026 Seth Johnston.
 
@@ -17,7 +20,18 @@ Copyright © 2026 Seth Johnston.
 MIT is compatible with the AGPL in this direction — MIT-licensed code may be
 incorporated into an AGPL work. The reverse is not true, which matters below.
 
-## ⚠ Open decision: the AGPL blocks the upstream-contribution track
+## ✔ Decided 2026-08-10: option 1, the core library is dual-licensed
+
+The open question below was settled by the copyright holder when preparing the
+upstream (Part B) proposal: **option 1 was adopted.** `src/DekerekeToPa/` is
+offered under **AGPL-3.0-or-later OR MIT** (SPDX headers updated,
+[LICENSE-MIT](LICENSE-MIT) added), so it can be contributed to the
+MIT-licensed Phonology Assistant. The add-on (`src/PaDekereke`), the stubs,
+the installer, the tests and the docs remain AGPL-3.0-or-later only.
+
+The original analysis is kept below for the record.
+
+## The decision, as it stood open: the AGPL blocks the upstream-contribution track
 
 `docs/PLAN.md` describes two tracks:
 
@@ -51,6 +65,7 @@ retroactive relicensing requires every contributor's agreement.
 ## Contributing
 
 By contributing you agree your contributions are licensed under
-AGPL-3.0-or-later. If option 1 above is adopted, contributions to
-`src/DekerekeToPa` are additionally offered under MIT — pull requests touching
-that directory should say so explicitly.
+AGPL-3.0-or-later — and, for anything under `src/DekerekeToPa/`,
+**additionally under MIT** (the directory is dual-licensed and must stay
+contributable upstream). Pull requests touching that directory should state
+explicitly that the author agrees to the dual licence.

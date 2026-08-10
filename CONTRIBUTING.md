@@ -2,12 +2,16 @@
 
 ## Licensing
 
-Contributions are accepted under **AGPL-3.0-or-later**. Read
-[LICENSING.md](LICENSING.md) first — there is an unresolved decision about
-dual-licensing `src/DekerekeToPa`, and it needs settling before outside
-contributions accumulate (retroactive relicensing needs everyone's agreement).
+Contributions are accepted under **AGPL-3.0-or-later** — except under
+`src/DekerekeToPa/`, which is **dual-licensed AGPL-3.0-or-later OR MIT**
+(settled 2026-08-10 so the core library can be contributed upstream to
+Phonology Assistant; see [LICENSING.md](LICENSING.md)). Contributions to that
+directory must be offered under both licences; pull requests touching it
+should say so explicitly.
 
-Add the SPDX header from any existing source file to new `.cs` files.
+Add the SPDX header from an existing source file *in the same directory* to
+new `.cs` files — the header differs between the dual-licensed core and the
+rest.
 
 ## Before you change anything
 

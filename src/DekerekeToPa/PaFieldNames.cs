@@ -1,20 +1,18 @@
 // Dekereke Data Sources for Phonology Assistant
 // Copyright (C) 2026 Seth Johnston
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR MIT
 //
-// This program is free software: you can redistribute it and/or modify it
-// under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or (at your
-// option) any later version.
+// This file is part of the DekerekeToPa core library, which is DUAL-LICENSED:
+// use it under the GNU Affero General Public License v3.0 or later (LICENSE),
+// OR under the MIT License (LICENSE-MIT), at your option. The dual licence
+// exists so this library can be contributed to MIT-licensed upstream projects
+// such as Phonology Assistant. Everything else in this repository remains
+// AGPL-3.0-or-later only. See LICENSING.md for the reasoning.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
-// for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// FITNESS FOR A PARTICULAR PURPOSE.
 
 using System.Collections.Generic;
 

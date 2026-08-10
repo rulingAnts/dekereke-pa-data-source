@@ -15,9 +15,9 @@ Notes before posting, not part of the issue:
 - PLAN.md suggests looping in Larry Hayashi, who originally pointed at this
   area — a cc/mention is Seth's call and his relationship, so the draft leaves
   names out.
-- The "offered under MIT" line about the core library requires settling the
-  question in LICENSING.md (dual-license the core library, or relicense at
-  submission time — copyright holder's call).
+- Licensing is settled (2026-08-10): `src/DekerekeToPa` is dual-licensed
+  AGPL-3.0-or-later OR MIT, so the MIT offer in the issue is already in force
+  — nothing is conditional.
 
 ---
 
@@ -96,9 +96,10 @@ The hard part — parsing the three encoding variants, and auto-mapping
 user-defined per-database column names (column inventories differ per
 database; the mapper covers English and Indonesian column names) — exists as
 a dependency-free netstandard2.0 library, already exercised by a CI test
-suite and by live use. **I'm prepared to contribute that code under PA's MIT
-license** and to do the integration work myself as a PR, keeping the change
-strictly additive.
+suite and by live use. **That library is dual-licensed (AGPL-3.0-or-later OR
+MIT) precisely so it can be contributed here under PA's MIT license**, and
+I'll do the integration work myself as a PR, keeping the change strictly
+additive.
 
 One thing to acknowledge directly: this would be PA's first non-SIL data
 format — today's list (PAXML, FieldWorks, SA, SFM/Toolbox, LIFT) is all SIL
