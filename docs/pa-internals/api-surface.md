@@ -244,8 +244,13 @@ loaded by a real installed PA 4.1.1 - the add-on loader instantiated
 `PaAddOnManager`, the references bound to the installed `Pa.exe`/`SilTools.dll`
 at run time, and `App.AddMediatorColleague(IxCoreColleague)` executed. So
 stub-built binaries are not merely type-checked: they bind against the shipped
-PA (no strong-naming in the way). Run-time correctness of the remaining
-surface still needs the full Windows checklist.
+PA (no strong-naming in the way). Later the same day, opening a project
+confirmed the dispatch convention live: the mediator invoked the add-on's
+`protected OnBeforeLoadingDataSources(object)` by name, and the handler read
+`PaProject.Name` and `PaProject.DataSources.Count` off the live project (a
+FieldWorks-sourced one, traversed as a clean no-op). Run-time correctness of
+the remaining surface (swap/restore, `FieldMapping`, `PaDataSource` ctor
+behaviour) still needs the Dekereke load itself.
 
 ### Types referenced above but not declared (stub-building gap, found 2026-08)
 
