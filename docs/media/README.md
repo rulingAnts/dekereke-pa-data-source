@@ -13,19 +13,12 @@ switch back to the host Mac desktop at about 115 s. Both ends were located by
 sampling frames rather than guessed — if you re-cut this, check the top-right
 corner across the whole clip before publishing.
 
-The landing page takes the first of these it can find:
-
-1. **`demo.mp4` in this folder** — small enough to autoplay as a silent loop,
-   which is what makes the hero feel live. This is the one in use.
-2. **The full recording on the project CDN** (URL in the script at the bottom
-   of `../index.html`). Never fetched until the visitor clicks Play, because
-   handing tens of megabytes to someone on a field connection uninvited is not
-   acceptable.
-3. **The schematic animation** — if neither loads, the page falls back to it
-   and still reads as finished.
-
-Adding `demo.mp4` here is therefore an upgrade, not a requirement, and needs no
-other edit: the page probes for it on load.
+The page loads this file and nothing else. There is deliberately **no
+off-site fallback**: an external copy would be an unversioned public URL of
+footage that was trimmed here for privacy reasons, and it would quietly serve
+the untrimmed cut if this file ever moved. If `demo.mp4` is missing or will not
+decode, the page falls back to its built-in schematic animation and still reads
+as finished.
 
 ## Shrinking a screen recording
 

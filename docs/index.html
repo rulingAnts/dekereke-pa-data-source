@@ -249,41 +249,6 @@
 		margin: 1.15rem 0 0;
 	}
 
-	/* Click-to-play, used when the recording is hosted off-site and is too
-	   heavy to pull down uninvited. The schematic behind it is the poster. */
-	.play {
-		position: absolute;
-		inset: 0;
-		display: none;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: .75rem;
-		width: 100%;
-		border: 0;
-		background: color-mix(in srgb, var(--surface) 60%, transparent);
-		color: var(--ink);
-		font-family: var(--body);
-		font-size: .95rem;
-		font-weight: 620;
-		cursor: pointer;
-		transition: background .15s ease;
-	}
-	.stage.is-remote .play { display: flex; }
-	.play:hover { background: color-mix(in srgb, var(--surface) 42%, transparent); }
-	.play .tri {
-		display: grid;
-		place-items: center;
-		width: 3.4rem; height: 3.4rem;
-		border-radius: 50%;
-		background: var(--accent);
-		color: var(--surface);
-		box-shadow: var(--shadow-lg);
-		font-size: 1.05rem;
-		padding-left: .2rem;
-	}
-	.play .hint { font-weight: 400; font-size: .82rem; color: var(--muted); }
-
 	/* ---------- call to action ---------- */
 
 	.cta { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.15rem; }
@@ -424,11 +389,6 @@
 					</div>
 					<p class="ph-note">Dekereke on the left, Phonology Assistant on the right.</p>
 				</div>
-				<button class="play" id="play" type="button">
-					<span class="tri" aria-hidden="true">&#9654;</span>
-					<span>Watch the demo</span>
-					<span class="hint">silent walkthrough</span>
-				</button>
 			</div>
 		</div>
 	</div>
@@ -547,82 +507,41 @@
 </footer>
 
 <script>
-	// Show the screen recording only if docs/media/demo.mp4 is actually
-	// present; otherwise the schematic above stands in. Drop the file in and
-	// the page switches over on its own - nothing else to edit.
+	// The recording is committed at media/demo.mp4 and autoplays as a silent
+	// loop. If it is ever missing or undecodable the schematic behind it stays
+	// put, rather than leaving a dead frame.
+	//
+	// Deliberately no off-site fallback: that would be an unversioned public
+	// URL of footage trimmed here for a reason, and would quietly serve the
+	// untrimmed cut if this file ever moved.
 	(function () {
-		// Two sources, deliberately treated differently.
-		//
-		// LOCAL is a small re-encoded copy committed to the repo. When it
-		// exists it is cheap enough to autoplay as a silent loop, which is what
-		// makes the hero feel live.
-		//
-		// REMOTE is the full-size recording on the project's CDN. It is far too
-		// heavy to hand to every visitor unasked - many of them are on field
-		// connections - so it is never fetched until the viewer asks for it:
-		// preload="none" plus an explicit play button.
-		var LOCAL = 'media/demo.mp4';
-		var REMOTE = 'https://cdn.flextext-editor.timfayu.org/pat/docs/media/' +
-			'Screen%20Recording%202026-08-10%20at%204.03.21%E2%80%AFPM.mp4';
-
 		var video = document.getElementById('demo-video');
 		var stage = document.getElementById('stage');
-		var play = document.getElementById('play');
-		if (!video || !stage || !play) return;
+		if (!video || !stage) return;
 
 		var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-		function reveal() {
-			stage.classList.remove('is-placeholder', 'is-remote');
+		video.addEventListener('loadedmetadata', function () {
+			stage.classList.remove('is-placeholder');
 			stage.classList.add('has-video');
-		}
 
-		function fallBackToSchematic() {
-			stage.classList.remove('has-video', 'is-remote');
+			// Anything playing on its own for more than a few seconds needs a way
+			// to stop it, so viewers who asked for stillness get controls, paused.
+			if (still) { video.setAttribute('controls', ''); return; }
+
+			var attempt = video.play();
+			if (attempt && attempt.catch) {
+				attempt.catch(function () { video.setAttribute('controls', ''); });
+			}
+		}, { once: true });
+
+		video.addEventListener('error', function () {
+			stage.classList.remove('has-video');
 			stage.classList.add('is-placeholder');
-		}
+		}, { once: true });
 
-		function useLocal() {
-			video.addEventListener('loadedmetadata', function () {
-				reveal();
-				if (still) { video.setAttribute('controls', ''); return; }
-				var attempt = video.play();
-				if (attempt && attempt.catch) {
-					attempt.catch(function () { video.setAttribute('controls', ''); });
-				}
-			}, { once: true });
-			video.addEventListener('error', fallBackToSchematic, { once: true });
-			video.preload = 'metadata';
-			video.src = LOCAL;
-		}
-
-		function offerRemote() {
-			stage.classList.add('is-remote');
-			play.addEventListener('click', function () {
-				play.disabled = true;
-				video.setAttribute('controls', '');
-				video.loop = !still;
-				video.addEventListener('loadeddata', reveal, { once: true });
-				video.addEventListener('error', function () {
-					// CDN unreachable: put the poster back rather than a dead frame.
-					play.disabled = false;
-					fallBackToSchematic();
-				}, { once: true });
-				video.preload = 'auto';
-				video.src = REMOTE;
-				video.play();
-			});
-		}
-
-		// Ask for the local file's headers only; a 404 costs nothing and tells
-		// us which of the two paths to take.
-		if (window.fetch) {
-			fetch(LOCAL, { method: 'HEAD' })
-				.then(function (r) { r.ok ? useLocal() : offerRemote(); })
-				.catch(offerRemote);
-		} else {
-			offerRemote();
-		}
+		video.preload = 'metadata';
+		video.src = 'media/demo.mp4';
 	})();
 </script>
 
