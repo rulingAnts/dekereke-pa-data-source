@@ -1,9 +1,10 @@
 Dekereke Data Sources for Phonology Assistant - manual install
 ==============================================================
 
-Use this only if you would rather not run the installer (for example if you
-cannot elevate). The installer does exactly what follows, plus a clean
-uninstall entry.
+Use this if you would rather not run an installer. It is not a way around
+needing administrator rights: Phonology Assistant lives in Program Files, so
+copying files into it requires elevation either way. The installer does exactly
+what follows, plus a clean uninstall entry.
 
 1. Close Phonology Assistant completely. If it has been misbehaving, check
    Task Manager for stray Pa.exe processes and end them.

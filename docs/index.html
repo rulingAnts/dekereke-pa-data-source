@@ -58,6 +58,11 @@
 
 	body {
 		margin: 0;
+		/* The hero's blurred glow deliberately bleeds past its box; without this
+		   it drags a horizontal scrollbar onto every tablet and landscape phone.
+		   clip is preferred over hidden - it does not create a scroll container. */
+		overflow-x: hidden;
+		overflow-x: clip;
 		background: var(--paper);
 		color: var(--ink);
 		font: 16px/1.65 var(--body);
@@ -232,12 +237,25 @@
 		box-shadow: var(--shadow-lg);
 	}
 
-	.media { position: relative; background: var(--sunken); }
-	.media video { display: none; width: 100%; height: auto; vertical-align: middle; }
+	/* The frame keeps the RECORDING's own ratio in both states, so swapping the
+	   video in for the schematic changes nothing about the layout. A 16/9 box
+	   here would grow ~69px at max width the moment the video loaded, shoving
+	   the download button down the page mid-read. */
+	.media {
+		position: relative;
+		background: var(--sunken);
+		aspect-ratio: 1112 / 720;
+	}
+	.media video {
+		display: none;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		vertical-align: middle;
+	}
 
-	/* Until the recording exists, hold a stable 16:9 frame so nothing jumps. */
-	.stage.is-placeholder .media { aspect-ratio: 16 / 9; display: grid; place-items: center; }
-	.stage.has-video .media { aspect-ratio: auto; background: #000; }
+	.stage.is-placeholder .media { display: grid; place-items: center; }
+	.stage.has-video .media { background: #000; }
 	.stage.has-video .media video { display: block; }
 	.stage.has-video .placeholder { display: none; }
 
@@ -361,7 +379,7 @@
 	<div class="stage-wrap">
 		<div class="stage is-placeholder" id="stage">
 			<div class="media">
-				<video id="demo-video" muted loop playsinline preload="none"
+				<video id="demo-video" muted loop playsinline controls preload="none"
 				       aria-label="Editing a form in Dekereke, then Phonology Assistant reloading by itself"></video>
 				<div class="placeholder" id="placeholder">
 					<div class="demo">
@@ -475,8 +493,26 @@
 		<ul class="plain">
 			<li>Phonology Assistant 4.1.1 on Windows — the add-on installs into its <code>AddOns</code> folder</li>
 			<li>A Dekereke phonology database. Dekereke is Rod Casali’s software, at <a href="https://casali.canil.ca">casali.canil.ca</a></li>
-			<li>Administrator rights to install, since Phonology Assistant lives in Program Files. If you would rather not, every release also ships a manual-install zip</li>
+			<li>Administrator rights, either way &mdash; Phonology Assistant lives in Program Files, so copying files into it needs elevation whether you run the installer or the manual-install zip. The zip is for people who would rather not run an installer, not a way around the permission</li>
 		</ul>
+	</section>
+
+	<section>
+		<h2>Windows will warn you before it runs</h2>
+		<p>
+			The installer is not code-signed, so Windows SmartScreen shows
+			<em>“Windows protected your PC”</em> with an unknown publisher. Click <strong>More
+			info</strong>, then <strong>Run anyway</strong>. This is expected, and worth knowing
+			about before it happens rather than after.
+		</p>
+		<p>
+			Signing certificates cost money this project does not have. What it offers instead is
+			that every release is built in the open: the
+			<a href="https://github.com/rulingAnts/dekereke-pa-data-source/actions">build runs
+			publicly on GitHub</a> from the source in this repository, and each download on the
+			<a href="https://github.com/rulingAnts/dekereke-pa-data-source/releases/latest">release
+			page</a> carries a SHA-256 you can check against the file you received.
+		</p>
 	</section>
 
 	<section>
@@ -525,13 +561,15 @@
 			stage.classList.remove('is-placeholder');
 			stage.classList.add('has-video');
 
-			// Anything playing on its own for more than a few seconds needs a way
-			// to stop it, so viewers who asked for stillness get controls, paused.
-			if (still) { video.setAttribute('controls', ''); return; }
+			// Controls are always present (the element carries the attribute), so
+			// anyone can stop this - required for anything that plays on its own
+			// for more than a few seconds, and the only way to scrub or go
+			// fullscreen on a phone, where the frame is small.
+			if (still) return;   // reduced motion: leave it paused
 
 			var attempt = video.play();
 			if (attempt && attempt.catch) {
-				attempt.catch(function () { video.setAttribute('controls', ''); });
+				attempt.catch(function () { /* blocked: the controls are there */ });
 			}
 		}, { once: true });
 
