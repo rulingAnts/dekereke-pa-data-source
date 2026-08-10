@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Command-line Dekereke -> Toolbox SFM converter, built on the same core
+    library the add-on uses (reader, auto-mapper, SFM writer).
+
+    This is a TEST VEHICLE, not the product: it produces a snapshot .db that
+    PA imports through its native Toolbox path (the first entry in PA's
+    add-data-source file picker), which exercises the add-on's conversion
+    pipeline against a real PA even while the live-hook path is being
+    debugged. The live auto-refreshing data source remains the add-on's job.
+
+    net48 so the exe runs on stock Windows (including Windows-on-ARM, under
+    emulation) with nothing to install. C# 7.3.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>DekerekeConvert</RootNamespace>
+    <AssemblyName>DekerekeConvert</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DekerekeToPa\DekerekeToPa.csproj" />
+  </ItemGroup>
+
+</Project>

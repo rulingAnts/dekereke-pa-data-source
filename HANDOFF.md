@@ -117,6 +117,34 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
 6. **Prompt discipline.** The convert path runs on EVERY focus-triggered
    reload. It must never prompt except: first contact with a database, phonetic
    unmappable, or Shift held during load.
+7. **ProjectSettingsDlg blocks XML sources before the add-on can run**
+   (found live on a real PA install, 2026-08-10). The add-on hooks project
+   *loading*, but a Dekereke `.xml` cannot *enter* a project through the UI:
+   the add-data-source picker has no `*.xml` filter (browse via "All Files"
+   works), the file is typed `XML`, and clicking OK raises **"You must
+   specify an XSLT file for '<file>'"** — from PA's dormant XSLT path
+   (`hook-points.md` §6), whose "Specify XSLT" column is hidden and whose
+   reader ignores XML sources anyway (`DataSourceReader.cs:274`:
+   `case DataSourceType.XML: break;`). So no XSLT — supplied, hand-edited
+   into the `.pap`, or referenced by an `xml-stylesheet` declaration inside
+   the Dekereke file — can ever make stock PA read it; PA validates and
+   stores the XSLT but never applies it. Consequences:
+   - The cold-start step of the checklist below CANNOT pass through the UI
+     as written. Workaround for testing: create the project with some other
+     source (e.g. a `DekerekeConvert` snapshot `.db`), close PA, hand-add a
+     second `<DataSource>` entry with `<Type>XML</Type>` pointing at the
+     Dekereke file in the `.pap`, reopen — project *open* does not go
+     through the dialog validation, and the add-on swaps the source before
+     the reader would skip it. (Not yet verified on Windows.)
+   - The real fix is an add-on-owned "Add Dekereke Data Source" menu item
+     via `App.TMAdapter` — blocked on transcribing the real `ITMAdapter`
+     from PA source (see `api-surface.md`, stub-building gap) — or Part B.
+   - Debugging aid: the add-on logs to `%LOCALAPPDATA%\PaDekereke\addon.log`
+     ("constructed" = loader ran it; "registered" = Pa.exe/SilTools bound;
+     conversion lines = pipeline live). No file at all = the loader never
+     instantiated it (missing/wrong AddOns folder, or a strong-name binding
+     failure at type load - check with
+     `[Reflection.AssemblyName]::GetAssemblyName('...\Pa.exe').FullName`).
 
 ## State of the code (as of handoff)
 
@@ -167,6 +195,8 @@ any OS — compile only; running needs Windows.
 1. **Cold start**: fresh PA project → add `sample-data/SampleLang_full.xml` as
    data source → mapping dialog appears once → Data Corpus populated, CV chart
    generated, Pitch under Tone, audio path prefixed from DkUserSettings.
+   **KNOWN BLOCKED via the UI** — see trap 7; use the `.pap` hand-edit
+   workaround there until the add-on grows its own add-source entry point.
 2. **Live refresh (the whole point)**: with PA open, touch/edit the Dekereke
    file, refocus PA → auto-reload, updated data, **no dialog**.
 3. **`.pap` integrity**: after (1) — the case that trips the mid-load save —

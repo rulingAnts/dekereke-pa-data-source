@@ -31,6 +31,8 @@ jobs:
           dotnet-version: 8.0.x
       - name: Build add-on against API-surface stubs
         run: dotnet build src/PaDekereke -c Release -p:UseStubs=true
+      - name: Build DekerekeConvert CLI
+        run: dotnet build src/DekerekeConvert -c Release
       # The two DLLs are architecture-neutral managed IL, so this Linux-built
       # output is exactly what gets installed into <PA>\AddOns\ on Windows.
       # Compiled against the stubs, so treat every artifact as untested against
@@ -42,4 +44,6 @@ jobs:
           path: |
             src/PaDekereke/bin/Release/net48/PaDekereke.dll
             src/PaDekereke/bin/Release/net48/DekerekeToPa.dll
+            src/DekerekeConvert/bin/Release/net48/DekerekeConvert.exe
+            src/DekerekeConvert/bin/Release/net48/DekerekeConvert.exe.config
           if-no-files-found: error

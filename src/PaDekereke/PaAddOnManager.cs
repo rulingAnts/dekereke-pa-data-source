@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using DekerekeToPa;
 using SIL.Pa;
@@ -72,18 +73,41 @@ namespace PaDekereke
 		/// ------------------------------------------------------------------------------------
 		public PaAddOnManager()
 		{
+			// PA swallows every add-on exception, so failure is silent by design;
+			// this line is the proof the assembly loaded and the loader ran us.
+			Log("constructed (assembly loaded, PaAddOnManager instantiated by PA)");
+
 			try
 			{
-				// If a future PA handles Dekereke natively, stand down entirely.
-				if (Enum.GetNames(typeof(DataSourceType)).Contains("Dekereke"))
-					return;
-
-				App.AddMediatorColleague(this);
+				RegisterWithPa();
 			}
-			catch
+			catch (Exception ex)
 			{
-				// An add-on must never take PA down.
+				// An add-on must never take PA down. Typical cause of landing here:
+				// the reference to Pa.exe/SilTools.dll did not bind at run time.
+				Log("FAILED to register with PA: " + ex);
 			}
+		}
+
+		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// Everything that touches PA types, kept out of the constructor (and not
+		/// inlined back into it) so the constructor always JITs and logs even when
+		/// the Pa.exe/SilTools.dll references fail to bind - the binding failure
+		/// then surfaces as a logged exception instead of pure silence.
+		/// </summary>
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void RegisterWithPa()
+		{
+			// If a future PA handles Dekereke natively, stand down entirely.
+			if (Enum.GetNames(typeof(DataSourceType)).Contains("Dekereke"))
+			{
+				Log("PA has native Dekereke support; add-on standing down");
+				return;
+			}
+
+			App.AddMediatorColleague(this);
+			Log("registered with PA mediator; waiting for BeforeLoadingDataSources");
 		}
 
 		#region IxCoreColleague
@@ -102,6 +126,9 @@ namespace PaDekereke
 			var project = args as PaProject;
 			if (project == null || project.DataSources == null)
 				return false;
+
+			Log("BeforeLoadingDataSources: project '" + project.Name + "', " +
+				project.DataSources.Count + " data source(s)");
 
 			m_swaps = new List<Swap>();
 
@@ -151,6 +178,7 @@ namespace PaDekereke
 				{
 					RestoreSwap(project, swap);
 					restoredAny = true;
+					Log("restored '" + swap.DekerekePath + "' as the project data source");
 				}
 				catch (Exception ex)
 				{
@@ -188,6 +216,9 @@ namespace PaDekereke
 
 			var sfmPath = ConversionCache.GetCachePathFor(dekerekePath);
 			var result = SfmWriter.Write(db, map, sfmPath);
+			Log("converted '" + dekerekePath + "': " + result.RecordsWritten +
+				" record(s) written, " + result.RecordsSkippedNoPhonetic +
+				" skipped (no phonetic)");
 
 			// Build the replacement data source. The PaDataSource(fields, filename)
 			// constructor sniffs the file: XML parse fails on SFM text, the \_sh
@@ -325,10 +356,36 @@ namespace PaDekereke
 		}
 
 		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// The only external evidence of life in a host that swallows all add-on
+		/// errors: appends to %LOCALAPPDATA%\PaDekereke\addon.log. Never throws,
+		/// and deliberately does not depend on any PA or DekerekeToPa type so it
+		/// works even when those references fail to bind.
+		/// </summary>
+		private static void Log(string message)
+		{
+			try
+			{
+				var dir = Path.Combine(
+					Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+					"PaDekereke");
+				Directory.CreateDirectory(dir);
+				File.AppendAllText(Path.Combine(dir, "addon.log"),
+					DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + message +
+					Environment.NewLine);
+			}
+			catch
+			{
+				// Logging must never become the failure.
+			}
+		}
+
+		/// ------------------------------------------------------------------------------------
 		private static void ShowError(string sourcePath, Exception ex)
 		{
 			try
 			{
+				Log("ERROR processing '" + sourcePath + "': " + ex);
 				MessageBox.Show(
 					string.Format(
 						"The Dekereke add-on could not process '{0}'.{1}{1}{2}",
