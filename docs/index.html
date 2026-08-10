@@ -7,155 +7,359 @@
 <meta name="description" content="Use a Dekereke phonology database as a live, auto-refreshing data source in SIL Phonology Assistant. Free and open source.">
 <style>
 	:root {
-		--bg: #fbfaf8;
-		--surface: #ffffff;
-		--border: #e3ded6;
-		--text: #24211d;
-		--muted: #635c52;
-		--accent: #8a5a2b;
-		--accent-strong: #6d4520;
-		--accent-soft: #f4ece1;
-		--code-bg: #f3efe9;
-		--shadow: 0 1px 2px rgba(36, 33, 29, .06), 0 8px 24px rgba(36, 33, 29, .06);
+		--paper:    #f5f6f8;
+		--surface:  #ffffff;
+		--sunken:   #eceef1;
+		--border:   #dde1e6;
+		--ink:      #111820;
+		--muted:    #59636f;
+		--accent:   #15697f;
+		--accent-2: #0f4f60;
+		--live:     #1c8a5c;
+		--shadow:   0 1px 2px rgba(17, 24, 32, .05), 0 10px 30px rgba(17, 24, 32, .07);
+
+		--display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+		--body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+		--mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 	}
+
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-theme="light"]) {
-			--bg: #171614;
-			--surface: #201e1b;
-			--border: #34302a;
-			--text: #ece8e1;
-			--muted: #a49b8d;
-			--accent: #d59a5c;
-			--accent-strong: #e8b47b;
-			--accent-soft: #2a241c;
-			--code-bg: #262320;
-			--shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .3);
+			--paper:    #10141a;
+			--surface:  #171d26;
+			--sunken:   #1d242e;
+			--border:   #2b333e;
+			--ink:      #e6eaef;
+			--muted:    #97a2ae;
+			--accent:   #58b6cf;
+			--accent-2: #86cee2;
+			--live:     #3fbc86;
+			--shadow:   0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
 		}
+	}
+
+	:root[data-theme="dark"] {
+		--paper:    #10141a;
+		--surface:  #171d26;
+		--sunken:   #1d242e;
+		--border:   #2b333e;
+		--ink:      #e6eaef;
+		--muted:    #97a2ae;
+		--accent:   #58b6cf;
+		--accent-2: #86cee2;
+		--live:     #3fbc86;
+		--shadow:   0 1px 2px rgba(0, 0, 0, .5), 0 10px 30px rgba(0, 0, 0, .35);
 	}
 
 	* { box-sizing: border-box; }
 
 	body {
 		margin: 0;
-		background: var(--bg);
-		color: var(--text);
-		font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+		background: var(--paper);
+		color: var(--ink);
+		font: 16px/1.65 var(--body);
 		-webkit-font-smoothing: antialiased;
 	}
 
-	.wrap { max-width: 52rem; margin: 0 auto; padding: 0 1.25rem; }
+	.wrap { width: 100%; max-width: 54rem; margin: 0 auto; padding: 0 1.5rem; }
 
-	header {
-		padding: 4rem 0 2.75rem;
-		border-bottom: 1px solid var(--border);
-		background: linear-gradient(180deg, var(--accent-soft), transparent);
-	}
+	a { color: var(--accent); }
+	a:hover { color: var(--accent-2); }
+	:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+	/* ---------- header ---------- */
+
+	header { padding: 4.5rem 0 3rem; }
+
 	.eyebrow {
-		font-size: .8rem; letter-spacing: .09em; text-transform: uppercase;
-		color: var(--accent); font-weight: 700; margin: 0 0 .85rem;
+		font-family: var(--mono);
+		font-size: .74rem;
+		letter-spacing: .13em;
+		text-transform: uppercase;
+		color: var(--accent);
+		margin: 0 0 1.1rem;
 	}
-	h1 {
-		font-size: clamp(1.9rem, 5vw, 2.85rem);
-		line-height: 1.15; margin: 0 0 1rem; letter-spacing: -.02em;
-	}
-	.lede { font-size: clamp(1.05rem, 2.4vw, 1.2rem); color: var(--muted); margin: 0 0 2rem; max-width: 40rem; }
 
-	.cta { display: flex; flex-wrap: wrap; gap: .85rem 1.1rem; align-items: center; }
+	h1 {
+		font-family: var(--display);
+		font-weight: 600;
+		font-size: clamp(2.05rem, 5.6vw, 3.1rem);
+		line-height: 1.1;
+		letter-spacing: -.015em;
+		text-wrap: balance;
+		margin: 0 0 1.1rem;
+	}
+
+	.lede {
+		font-size: clamp(1.05rem, 2.3vw, 1.19rem);
+		color: var(--muted);
+		max-width: 38rem;
+		margin: 0;
+	}
+
+	/* ---------- the sync demo: the whole point of the project ---------- */
+
+	.demo {
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
+		align-items: stretch;
+		gap: .75rem;
+		margin: 2.5rem 0 2.25rem;
+	}
+	@media (max-width: 40rem) {
+		.demo { grid-template-columns: 1fr; }
+		.demo .arrow { transform: rotate(90deg); padding: .2rem 0; }
+	}
+
+	.pane {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		box-shadow: var(--shadow);
+		overflow: hidden;
+		min-width: 0;
+	}
+
+	.pane-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: .5rem;
+		padding: .5rem .8rem;
+		background: var(--sunken);
+		border-bottom: 1px solid var(--border);
+		font-family: var(--mono);
+		font-size: .7rem;
+		letter-spacing: .08em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+
+	.pane-body {
+		padding: .85rem .8rem;
+		font-family: var(--mono);
+		font-size: .82rem;
+		line-height: 1.85;
+		overflow-x: auto;
+	}
+
+	.tag { color: var(--muted); }
+	.val { color: var(--ink); }
+
+	/* The edited value cross-fades; the PA row picks it up a beat later. */
+	.swap { position: relative; display: inline-block; min-width: 5.4ch; }
+	.swap span { display: inline-block; }
+	.swap .after { position: absolute; left: 0; top: 0; }
+
+	.swap .before { animation: showBefore 9s infinite; }
+	.swap .after  { animation: showAfter  9s infinite; }
+
+	@keyframes showBefore {
+		0%, 30% { opacity: 1; }
+		36%, 94% { opacity: 0; }
+		100% { opacity: 1; }
+	}
+	@keyframes showAfter {
+		0%, 30% { opacity: 0; }
+		36%, 94% { opacity: 1; }
+		100% { opacity: 0; }
+	}
+
+	.pa-row { border-radius: 4px; padding: 0 .3rem; margin: 0 -.3rem; animation: refresh 9s infinite; }
+	@keyframes refresh {
+		0%, 52% { background: transparent; }
+		58%, 74% { background: color-mix(in srgb, var(--live) 17%, transparent); }
+		86%, 100% { background: transparent; }
+	}
+
+	.dot {
+		width: .5rem; height: .5rem; border-radius: 50%;
+		background: var(--live); flex: none;
+		animation: pulse 9s infinite;
+	}
+	@keyframes pulse {
+		0%, 50% { opacity: .35; transform: scale(.85); }
+		57% { opacity: 1; transform: scale(1); }
+		80%, 100% { opacity: .35; transform: scale(.85); }
+	}
+
+	.arrow {
+		display: grid; place-items: center;
+		color: var(--muted); font-size: 1.1rem;
+		font-family: var(--mono);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.swap .before, .swap .after, .pa-row, .dot { animation: none; }
+		.swap .before { opacity: 0; }
+		.swap .after { opacity: 1; }
+		.dot { opacity: 1; }
+	}
+
+	.demo-caption {
+		text-align: center;
+		color: var(--muted);
+		font-size: .88rem;
+		margin: 0 0 2.5rem;
+	}
+
+	/* ---------- call to action ---------- */
+
+	.cta { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.15rem; }
+
 	.btn {
-		display: inline-block; background: var(--accent); color: #fff;
-		text-decoration: none; font-weight: 650; font-size: 1.03rem;
-		padding: .8rem 1.6rem; border-radius: 8px; box-shadow: var(--shadow);
+		display: inline-block;
+		background: var(--accent);
+		color: var(--surface);
+		text-decoration: none;
+		font-weight: 640;
+		font-size: 1.02rem;
+		padding: .78rem 1.55rem;
+		border-radius: 7px;
+		box-shadow: var(--shadow);
 		transition: background .15s ease, transform .15s ease;
 	}
-	.btn:hover { background: var(--accent-strong); transform: translateY(-1px); }
-	.btn-note { color: var(--muted); font-size: .9rem; }
-	.btn-note a { color: inherit; }
+	.btn:hover { background: var(--accent-2); color: var(--surface); transform: translateY(-1px); }
+	.cta-note { color: var(--muted); font-size: .9rem; }
 
-	main { padding: 3rem 0 1rem; }
-	section { margin-bottom: 3.25rem; }
-	h2 { font-size: 1.4rem; margin: 0 0 1rem; letter-spacing: -.01em; }
-	h3 { font-size: 1.02rem; margin: 0 0 .35rem; }
-	p { margin: 0 0 1rem; }
+	/* ---------- body sections ---------- */
+
+	main { padding: 1rem 0 0; }
+	section { margin-bottom: 3.5rem; }
+
+	h2 {
+		font-family: var(--display);
+		font-weight: 600;
+		font-size: 1.55rem;
+		letter-spacing: -.01em;
+		margin: 0 0 1rem;
+	}
+
+	h3 { font-size: 1rem; font-weight: 640; margin: 0 0 .3rem; }
+	p { margin: 0 0 1rem; max-width: 40rem; }
+	p:last-child { margin-bottom: 0; }
 
 	.card {
-		background: var(--surface); border: 1px solid var(--border);
-		border-radius: 10px; padding: 1.35rem 1.5rem; box-shadow: var(--shadow);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		padding: 1.4rem 1.5rem;
+		box-shadow: var(--shadow);
 	}
 
-	ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
-	ol.steps li {
-		counter-increment: step; position: relative;
-		padding: 0 0 1.4rem 3.1rem; margin: 0;
-	}
+	/* Numbered because these genuinely are sequential: each step depends on
+	   the one before it. */
+	ol.steps { counter-reset: step; list-style: none; margin: 0; padding: 0; }
+	ol.steps li { counter-increment: step; position: relative; padding: 0 0 1.5rem 3.2rem; }
 	ol.steps li:last-child { padding-bottom: 0; }
 	ol.steps li::before {
 		content: counter(step);
-		position: absolute; left: 0; top: -.1rem;
-		width: 2.05rem; height: 2.05rem; border-radius: 50%;
-		background: var(--accent-soft); color: var(--accent);
-		border: 1px solid var(--border);
-		display: grid; place-items: center; font-weight: 700; font-size: .92rem;
+		position: absolute; left: 0; top: -.05rem;
+		width: 2rem; height: 2rem; border-radius: 50%;
+		display: grid; place-items: center;
+		background: var(--sunken); border: 1px solid var(--border);
+		color: var(--accent); font-family: var(--mono); font-size: .82rem; font-weight: 700;
 	}
-	ol.steps p { margin: 0; color: var(--muted); }
+	ol.steps p { margin: 0; color: var(--muted); font-size: .95rem; }
 
-	.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
-	.grid p { margin: 0; color: var(--muted); font-size: .95rem; }
+	.facts { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr)); }
+	.facts p { color: var(--muted); font-size: .93rem; margin: 0; }
+
+	ul.plain { margin: 0; padding-left: 1.15rem; color: var(--muted); }
+	ul.plain li { margin-bottom: .55rem; }
+	ul.plain li:last-child { margin-bottom: 0; }
 
 	code, kbd {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		font-size: .88em; background: var(--code-bg); padding: .15em .42em;
-		border-radius: 4px; border: 1px solid var(--border);
+		font-family: var(--mono);
+		font-size: .87em;
+		background: var(--sunken);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		padding: .12em .4em;
 	}
 	kbd { font-weight: 600; }
 
-	ul.plain { margin: 0; padding-left: 1.2rem; color: var(--muted); }
-	ul.plain li { margin-bottom: .5rem; }
-
-	a { color: var(--accent); }
-	a:hover { color: var(--accent-strong); }
+	.path {
+		display: block;
+		background: var(--sunken);
+		border: 1px solid var(--border);
+		border-radius: 7px;
+		padding: .7rem .9rem;
+		font-family: var(--mono);
+		font-size: .84rem;
+		overflow-x: auto;
+		white-space: nowrap;
+	}
 
 	footer {
-		border-top: 1px solid var(--border); margin-top: 2rem;
-		padding: 2rem 0 3rem; color: var(--muted); font-size: .9rem;
+		border-top: 1px solid var(--border);
+		margin-top: 1.5rem;
+		padding: 2rem 0 3.5rem;
+		color: var(--muted);
+		font-size: .88rem;
 	}
-	footer p { margin: 0 0 .6rem; }
+	footer p { margin: 0 0 .6rem; max-width: 44rem; }
+	footer p:last-child { margin-bottom: 0; }
 </style>
 </head>
 <body>
 
-<header>
-	<div class="wrap">
-		<p class="eyebrow">Phonology Assistant add-on</p>
-		<h1>Your Dekereke database, live in Phonology&nbsp;Assistant</h1>
-		<p class="lede">
-			Add your Dekereke <code>.xml</code> as a data source once. Then edit in Dekereke,
-			switch back to Phonology Assistant, and it reloads by itself — no re-import,
-			no converter to re-run, no stale snapshot.
-		</p>
-		<div class="cta">
-			<a class="btn" href="https://github.com/rulingAnts/dekereke-pa-data-source/releases/latest">Download the installer</a>
-			<span class="btn-note">
-				Free and open source ·
-				<a href="https://github.com/rulingAnts/dekereke-pa-data-source">source on GitHub</a>
-			</span>
+<header class="wrap">
+	<p class="eyebrow">Phonology Assistant add-on</p>
+	<h1>Your Dekereke database, live in Phonology&nbsp;Assistant</h1>
+	<p class="lede">
+		Add your Dekereke <code>.xml</code> once. Then keep working in Dekereke — switch back
+		to Phonology Assistant and it has already reloaded itself.
+	</p>
+
+	<div class="demo">
+		<div class="pane">
+			<div class="pane-head"><span>Dekereke &mdash; Fayu_stable.xml</span></div>
+			<div class="pane-body">
+				<span class="tag">&lt;Gloss&gt;</span><span class="val">gecko</span><span class="tag">&lt;/Gloss&gt;</span><br>
+				<span class="tag">&lt;Phonetic&gt;</span><span class="swap"><span class="before val">kuɭi</span><span class="after val">kuɭiː</span></span><span class="tag">&lt;/Phonetic&gt;</span><br>
+				<span class="tag">&lt;Pitch&gt;</span><span class="val">[3 K k]</span><span class="tag">&lt;/Pitch&gt;</span>
+			</div>
 		</div>
+
+		<div class="arrow" aria-hidden="true">&rarr;</div>
+
+		<div class="pane">
+			<div class="pane-head">
+				<span>Phonology Assistant</span>
+				<span class="dot" aria-hidden="true"></span>
+			</div>
+			<div class="pane-body">
+				<div>Gloss&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Phonetic&nbsp;&nbsp;&nbsp;Tone</div>
+				<div class="pa-row">gecko&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="swap"><span class="before">kuɭi</span><span class="after">kuɭiː</span></span>&nbsp;&nbsp;&nbsp;[3 K k]</div>
+			</div>
+		</div>
+	</div>
+	<p class="demo-caption">No re-import, no export step, no stale snapshot.</p>
+
+	<div class="cta">
+		<a class="btn" href="https://github.com/rulingAnts/dekereke-pa-data-source/releases/latest">Download for Windows</a>
+		<span class="cta-note">
+			Free and open source &middot;
+			<a href="https://github.com/rulingAnts/dekereke-pa-data-source">source on GitHub</a>
+		</span>
 	</div>
 </header>
 
 <main class="wrap">
 
 	<section>
-		<h2>What it does</h2>
+		<h2>Why this exists</h2>
 		<p>
 			<a href="https://software.sil.org/phonologyassistant/">Phonology Assistant</a> reads
 			Toolbox, FieldWorks, Speech Analyzer and PAXML — but not
-			<a href="https://casali.canil.ca">Dekereke</a>. The usual workaround is to export a
-			snapshot and re-export every time the data changes.
+			<a href="https://casali.canil.ca">Dekereke</a>. So the usual approach is to export a
+			snapshot, and export again after every session of data entry.
 		</p>
 		<p>
-			This add-on removes that step. Phonology Assistant keeps pointing at your real
-			Dekereke file and notices when it changes, so your phonology charts, searches and
-			CV patterns always reflect what you just typed.
+			This add-on removes that step entirely. Phonology Assistant keeps pointing at your
+			actual Dekereke file and notices when it changes, so your charts, searches and CV
+			patterns always reflect what you just typed.
 		</p>
 	</section>
 
@@ -165,46 +369,46 @@
 			<ol class="steps">
 				<li>
 					<h3>Install, then start Phonology Assistant</h3>
-					<p>The installer finds Phonology Assistant on its own and adds an uninstall entry.</p>
+					<p>The installer locates Phonology Assistant on its own and registers a normal uninstall entry.</p>
 				</li>
 				<li>
-					<h3>File → New Project, then Add ▾ → “Dekereke Data Source…”</h3>
-					<p>Also available under Project Settings for a project you already have open.</p>
+					<h3>File &rarr; New Project, then Add &rarr; “Dekereke Data Source…”</h3>
+					<p>The same item appears under Project Settings for a project you already have open.</p>
 				</li>
 				<li>
 					<h3>Confirm the column mapping</h3>
 					<p>
-						Dekereke column names are yours, so nothing is hard-coded: the add-on reads the
-						column names out of your own database and guesses. Adjust anything it got wrong,
-						then click OK.
+						Dekereke column names are yours to choose, so nothing here is hard-coded: the add-on
+						reads the column names out of your own database and proposes a mapping. Correct
+						anything it guessed wrong, then click OK.
 					</p>
 				</li>
 				<li>
-					<h3>That’s it — keep working in Dekereke</h3>
-					<p>Every time you save and switch back, Phonology Assistant refreshes itself.</p>
+					<h3>Go back to work</h3>
+					<p>Every time you save in Dekereke and switch to Phonology Assistant, it refreshes itself.</p>
 				</li>
 			</ol>
 		</div>
 	</section>
 
 	<section>
-		<h2>Good to know</h2>
-		<div class="grid">
+		<h2>Worth knowing</h2>
+		<div class="facts">
 			<div class="card">
-				<h3>Your data is never touched</h3>
-				<p>The Dekereke file is only ever read. Conversion happens on a copy in a private cache folder.</p>
+				<h3>Your database is never written to</h3>
+				<p>The Dekereke file is only ever read. Conversion happens on a copy, in a private cache folder.</p>
 			</div>
 			<div class="card">
 				<h3>Any Dekereke database</h3>
-				<p>Column inventories differ from project to project, and both English and Indonesian column names are recognised.</p>
+				<p>Column inventories differ from project to project. English and Indonesian column names are both recognised.</p>
 			</div>
 			<div class="card">
-				<h3>Change the mapping later</h3>
+				<h3>Remap whenever you like</h3>
 				<p>Hold <kbd>Shift</kbd> while the project loads to reopen the mapping dialog.</p>
 			</div>
 			<div class="card">
-				<h3>Every encoding in the wild</h3>
-				<p>Older UTF-16 databases and current UTF-8 ones both load, with no setting to choose.</p>
+				<h3>Every encoding in the field</h3>
+				<p>Older UTF-16 databases and current UTF-8 ones both load, with nothing to configure.</p>
 			</div>
 		</div>
 	</section>
@@ -212,21 +416,21 @@
 	<section>
 		<h2>Requirements</h2>
 		<ul class="plain">
-			<li>Phonology Assistant 4.1.1 on Windows (the add-on installs into its <code>AddOns</code> folder)</li>
-			<li>A Dekereke phonology database — Dekereke is Rod Casali’s software, at <a href="https://casali.canil.ca">casali.canil.ca</a></li>
-			<li>Administrator rights for the installer, since Phonology Assistant lives in Program Files. Prefer not to? Each release also ships a manual-install zip.</li>
+			<li>Phonology Assistant 4.1.1 on Windows — the add-on installs into its <code>AddOns</code> folder</li>
+			<li>A Dekereke phonology database. Dekereke is Rod Casali’s software, at <a href="https://casali.canil.ca">casali.canil.ca</a></li>
+			<li>Administrator rights to install, since Phonology Assistant lives in Program Files. If you would rather not, every release also ships a manual-install zip</li>
 		</ul>
 	</section>
 
 	<section>
 		<h2>If something looks wrong</h2>
 		<p>
-			The add-on keeps a plain-text log of everything it does — every load, how many records
+			The add-on writes a plain-text log of everything it does — each reload, how many records
 			were converted, and how many were skipped for having no phonetic form:
 		</p>
-		<p><code>%LOCALAPPDATA%\PaDekereke\addon.log</code></p>
+		<p><code class="path">%LOCALAPPDATA%\PaDekereke\addon.log</code></p>
 		<p>
-			That file is the first thing to attach to a
+			That file is the most useful thing to attach to a
 			<a href="https://github.com/rulingAnts/dekereke-pa-data-source/issues">bug report</a>.
 		</p>
 	</section>
@@ -237,8 +441,10 @@
 	<p>
 		Free software under the
 		<a href="https://github.com/rulingAnts/dekereke-pa-data-source/blob/main/LICENSE">AGPL-3.0-or-later</a>.
-		Not affiliated with SIL International or with Dekereke; Phonology Assistant is
-		© SIL International, and Dekereke is © Rod Casali.
+	</p>
+	<p>
+		An independent project, not affiliated with or endorsed by SIL International or by
+		Rod Casali. Phonology Assistant is © SIL International; Dekereke is © Rod Casali.
 	</p>
 	<p><a href="https://github.com/rulingAnts/dekereke-pa-data-source">github.com/rulingAnts/dekereke-pa-data-source</a></p>
 </footer>
