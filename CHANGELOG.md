@@ -6,9 +6,39 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-Nothing has been compiled or run yet — see `HANDOFF.md` for the exact state and
-the remaining work. Nothing below is verified against a live Phonology
-Assistant install.
+**Working end to end against a live Phonology Assistant 4.1.1 install**
+(2026-08-10): a real ~1000-record Dekereke database was added through PA's own
+New Project dialog, mapped once, loaded (944 records; 122 skipped for having no
+phonetic form), and thereafter **auto-refreshed on every edit** — the goal of
+the whole project. Details and log evidence in `HANDOFF.md`.
+
+### Added since the first draft
+- **"Dekereke Data Source…" in PA's Add dropdown**, in the New Project dialog
+  and Project Settings alike — the discoverable route a normal user needs. That
+  dropdown is plain WinForms and not extensible by PA's add-on menu API, so it
+  is injected at runtime; the private members that depends on are tabulated in
+  `docs/pa-internals/api-surface.md`.
+- **Tools → "Add Dekereke Data Source…"** for a project that is already open,
+  as a proper `ITMAdapter` menu item.
+- The column mapping is now confirmed **at import**, and remembered, so exactly
+  one dialog appears per database.
+- File-type validation: only XML whose root element is `phon_data` is accepted.
+- Diagnostic log at `%LOCALAPPDATA%\PaDekereke\addon.log` (PA swallows all
+  add-on errors, so this is the only way to see what happened).
+- Compile-only PA/SilTools API stubs, so the add-on builds with no PA install;
+  CI builds the add-on and the Windows installer on every push.
+- `DekerekeConvert` CLI (Dekereke → Toolbox SFM snapshot), for diagnostics.
+- Mapping dialog: column filter box and remembered window size.
+- User-facing download site in `docs/`.
+
+### Fixed since the first draft
+- Add-on registers only its first instance per process, keeps per-load state
+  re-entrancy-safe, and never stacks a second mapping dialog.
+- Data sources are handed to PA fully formed: PA's project settings dialog
+  rejects an XML source with no XSLT file and no phonetic field mapping, and
+  crashes on a mapping whose field is unresolved. All three are handled.
+- Installer's PA detection implemented via the MSI UpgradeCode, with a
+  path-probe fallback; the script now actually compiles (verified in CI).
 
 ### Added
 - Core library `DekerekeToPa` (netstandard2.0, no PA dependency):
@@ -35,7 +65,16 @@ Assistant install.
   checklist), `CLOUD_PROMPT.md`, `docs/PLAN.md`, `LICENSING.md`.
 
 ### Known open items
-- Nothing compiled; core tests not yet run.
-- Installer's MSI-based PA detection is a stub with a path-probe fallback.
+- The installer has been **compiled** but not yet **run** on Windows: PA
+  detection via `MsiEnumRelatedProducts` is unverified against a real PA
+  install, as is the uninstall path. The path-probe fallback and manual browse
+  cover a detection miss.
+- The add-on binary is compiled against reconstructed API stubs rather than a
+  real `Pa.exe`. It binds and runs correctly against PA 4.1.1 (confirmed
+  live), but a future PA could diverge.
+- The project-settings dropdown integration binds to PA private members by
+  name; a future PA release could rename them. It fails soft (the menu item
+  simply does not appear, with a reason logged).
 - The AGPL license blocks the upstream-contribution track — see
   `LICENSING.md`.
+- Part B (native `DataSourceType.Dekereke` in PA itself) remains a design only.
