@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Installer: the uninstaller no longer lives inside Phonology Assistant's
+  `AddOns` folder. `{app}` is now the add-on's own `Program Files
+  (x86)\PaDekereke` (holding only the uninstall data); the two DLLs are
+  deployed into `AddOns` as a target, the chosen path is remembered under
+  `HKLM\Software\PaDekereke` for uninstall-time cleanup, and uninstall
+  removes the DLLs, drops `AddOns` if then empty, and removes its own folder.
+  When PA cannot be detected, a dedicated wizard page asks for the folder
+  containing `Pa.exe` (replacing the repurposed directory page). Compiled in
+  CI; not yet run on Windows.
+- Landing page: the demo recording is trimmed (desktop and recording
+  notification removed from both ends), autoplays with visible controls, holds
+  a frame matching the video's real aspect ratio, and no longer references any
+  off-site copy of the footage. Unsigned-installer SmartScreen warning and the
+  admin-rights requirement are now stated plainly.
+
 ## [1.0.0] — 2026-08-10
 
 **Working end to end against a live Phonology Assistant 4.1.1 install**

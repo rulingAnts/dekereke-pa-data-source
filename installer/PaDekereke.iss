@@ -6,7 +6,12 @@
 ;      ALLUSERS=1, so this installer requests elevation).
 ;   2. Copy PaDekereke.dll + DekerekeToPa.dll (and any netstandard support DLLs
 ;      from the build output) into <PA>\AddOns\.
-;   3. Uninstall = remove those files (and AddOns if empty).
+;   3. Keep everything of its OWN out of PA's tree: the uninstaller lives in
+;      {pf32}\PaDekereke, not in AddOns. Only the two DLLs go into PA's
+;      folder, and the chosen AddOns path is remembered in the registry so
+;      uninstall can remove them (and AddOns itself, if then empty) even
+;      though they live outside {app}.
+;   4. Uninstall = remove the DLLs, drop AddOns if empty, remove {app}.
 ;
 ; PA detection, in order:
 ;   a. MSI: PA's UpgradeCode is fixed across versions:
@@ -20,7 +25,8 @@
 ;      which could not be checked offline - hence the fallbacks stay.
 ;   b. Fallback: probe {pf32}\SIL\Phonology Assistant (and the literal default
 ;      path) for Pa.exe.
-;   c. Last resort: the user browses to the folder (DisableDirPage=no).
+;   c. Last resort: a dedicated wizard page (shown only when detection
+;      fails) asks for the folder containing Pa.exe.
 ;
 ; Build (Windows): iscc installer\PaDekereke.iss
 ;   after: dotnet build src\PaDekereke -c Release
@@ -43,25 +49,38 @@ AppPublisher={#AppPublisherName}
 AppPublisherURL={#AppUrl}
 AppSupportURL={#AppUrl}/issues
 AppUpdatesURL={#AppUrl}/releases
-DefaultDirName={code:GetPaDir}\AddOns
-DisableDirPage=no
-DirExistsWarning=no
-AppendDefaultDirName=no
+; {app} is the add-on's own folder and holds only the uninstaller. PA's
+; AddOns folder is a deployment TARGET, resolved in [Code] - putting the
+; uninstall data inside another product's tree would orphan our uninstall
+; entry if PA were ever removed or reinstalled first.
+DefaultDirName={autopf}\PaDekereke
+; An earlier build used <PA>\AddOns as {app}; never inherit that from a
+; previous install's registry entry.
+UsePreviousAppDir=no
+DisableDirPage=yes
 PrivilegesRequired=admin
 OutputBaseFilename=PaDekereke-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
-UninstallFilesDir={app}
 ArchitecturesInstallIn64BitMode=
 
 [Files]
-Source: "{#AddOnBuildDir}\PaDekereke.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#AddOnBuildDir}\DekerekeToPa.dll"; DestDir: "{app}"; Flags: ignoreversion
+; Installed-file paths are recorded absolutely in the uninstall log, so these
+; are removed on uninstall even though they are outside {app}.
+Source: "{#AddOnBuildDir}\PaDekereke.dll"; DestDir: "{code:GetAddOnsDir}"; Flags: ignoreversion
+Source: "{#AddOnBuildDir}\DekerekeToPa.dll"; DestDir: "{code:GetAddOnsDir}"; Flags: ignoreversion
 ; netstandard2.0 facade shims, if the build output contains any:
-Source: "{#AddOnBuildDir}\netstandard.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AddOnBuildDir}\netstandard.dll"; DestDir: "{code:GetAddOnsDir}"; Flags: ignoreversion skipifsourcedoesntexist
 
-[Messages]
-SelectDirDesc=Setup could not locate Phonology Assistant automatically.%nPlease select Phonology Assistant's AddOns folder (inside the folder containing Pa.exe).
+[Registry]
+; Where the DLLs went, for uninstall-time cleanup ({code:...} state is gone by
+; then). uninsdeletekey removes the whole key with the add-on.
+Root: HKLM; Subkey: "Software\PaDekereke"; ValueType: string; ValueName: "AddOnsDir"; ValueData: "{code:GetAddOnsDir}"; Flags: uninsdeletekey
+
+[UninstallDelete]
+; Drop the AddOns folder if removing our DLLs left it empty; harmless no-op
+; otherwise. Falls back to {app} (removed anyway) if the registry value is gone.
+Type: dirifempty; Name: "{reg:HKLM\Software\PaDekereke,AddOnsDir|{app}}"
 
 [Code]
 const
@@ -153,12 +172,23 @@ begin
     Result := DefaultPaDir;
 end;
 
-function GetPaDir(Param: string): string;
+var
+  PaDirPage: TInputDirWizardPage;
+
+// The PA program folder: detected, or whatever the user picked on the page.
+function GetPaDir: string;
 begin
   if FoundPaDir <> '' then
     Result := FoundPaDir
   else
-    Result := DefaultPaDir;
+    Result := RemoveBackslashUnlessRoot(Trim(PaDirPage.Values[0]));
+end;
+
+// Where the DLLs go. Used by [Files] and remembered in [Registry]; the DLLs
+// deliberately do NOT go under {app} - see the note in [Setup].
+function GetAddOnsDir(Param: string): string;
+begin
+  Result := AddBackslash(GetPaDir) + 'AddOns';
 end;
 
 function InitializeSetup: Boolean;
@@ -166,24 +196,40 @@ begin
   FoundPaDir := DetectPaDir;
   Result := True;
   if FoundPaDir = '' then
-    MsgBox('Phonology Assistant was not found in its default location.'#13#10 +
-           'You can still continue and select its AddOns folder manually,'#13#10 +
-           'or cancel, install Phonology Assistant first, and run this setup again.',
+    MsgBox('Phonology Assistant was not found on this computer.'#13#10#13#10 +
+           'You can still continue and point Setup at its program folder ' +
+           '(the folder containing Pa.exe), or cancel, install Phonology ' +
+           'Assistant first, and run this setup again.',
            mbInformation, MB_OK);
+end;
+
+procedure InitializeWizard;
+begin
+  PaDirPage := CreateInputDirPage(wpWelcome,
+    'Locate Phonology Assistant',
+    'Setup could not find Phonology Assistant automatically.',
+    'Select the folder that contains Pa.exe, then click Next.',
+    False, '');
+  PaDirPage.Add('&Phonology Assistant program folder:');
+  PaDirPage.Values[0] := DefaultPaDir;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  // The locate page exists only for the detection-failed case.
+  Result := (PageID = PaDirPage.ID) and (FoundPaDir <> '');
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  // Refuse to install into a folder that is not next to Pa.exe.
-  if CurPageID = wpSelectDir then
+  if CurPageID = PaDirPage.ID then
   begin
-    if not FileExists(ExtractFilePath(RemoveBackslash(WizardDirValue)) + '\Pa.exe') and
-       not FileExists(AddBackslash(RemoveBackslash(WizardDirValue)) + '..\Pa.exe') then
+    if not FileExists(AddBackslash(Trim(PaDirPage.Values[0])) + 'Pa.exe') then
     begin
-      MsgBox('That folder does not appear to be Phonology Assistant''s AddOns folder ' +
-             '(Pa.exe was not found beside it). Please choose the AddOns folder inside ' +
-             'the Phonology Assistant program folder.', mbError, MB_OK);
+      MsgBox('Pa.exe was not found in that folder. Please select the ' +
+             'Phonology Assistant program folder itself - normally'#13#10 +
+             DefaultPaDir, mbError, MB_OK);
       Result := False;
     end;
   end;
