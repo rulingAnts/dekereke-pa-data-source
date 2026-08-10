@@ -26,8 +26,44 @@ using System.Reflection;
 using System.Xml.Serialization;
 using SilTools;
 
+namespace SIL.FieldWorks.Common.UIAdapters
+{
+	// Verified against PA source 2026-08-10: this namespace is compiled INTO
+	// Pa.exe (src/Pa/UIAdapter/TMInterface.cs, HelperClasses.cs). Partial
+	// transcriptions - only the members the add-on uses; the real interface is
+	// much larger. Partial interface stubs are safe for CALLERS (member
+	// references bind by name+signature at run time); never IMPLEMENT
+	// ITMAdapter against this stub.
+
+	/// <summary>Subset of src/Pa/UIAdapter/HelperClasses.cs:47.</summary>
+	public class TMItemProperties
+	{
+		public string Name { get; set; }
+		public string Text { get; set; }
+		public string CommandId { get; set; }
+		public bool Enabled { get; set; }
+		public bool Visible { get; set; }
+		public bool Update { get; set; }
+	}
+
+	/// <summary>Subset of src/Pa/UIAdapter/TMInterface.cs:22.</summary>
+	public interface ITMAdapter
+	{
+		void AddCommandItem(string cmdId, string message, string text, string textAlt,
+			string contextMenuText, string toolTipText, string category, string statusMsg,
+			System.Windows.Forms.Keys shortcutKey, string imageLabel, System.Drawing.Image image);
+
+		void AddMenuItem(TMItemProperties itemProps, string parentItemName, string insertBeforeItem);
+
+		TMItemProperties GetItemProperties(string name);
+	}
+}
+
 namespace SIL.Pa
 {
+	using SIL.FieldWorks.Common.UIAdapters;
+	using SIL.Pa.Model;
+
 	public static class App
 	{
 		public static Mediator MsgMediator { get; internal set; }
@@ -61,14 +97,32 @@ namespace SIL.Pa
 
 		public static ITMAdapter TMAdapter { get; set; }
 
+		// Verified against PA source 2026-08-10: App.cs:726 and App.cs:857.
+		public static System.Windows.Forms.Form MainForm { get; set; }
+
+		public static PaProject Project { get; set; }
+
 		public static List<Assembly> AddOnAssemblys { get; private set; }
 
 		public static List<object> AddOnManagers { get; private set; }
 	}
 }
 
+namespace SIL.Pa.DataSource.FieldWorks
+{
+	/// <summary>
+	/// Empty placeholder; the add-on never touches FieldWorks sources.
+	/// Namespace verified against PA source 2026-08-10
+	/// (src/Pa/DataSourceClasses/FieldWorks/FwDataSourceInfo.cs:19).
+	/// </summary>
+	public class FwDataSourceInfo
+	{
+	}
+}
+
 namespace SIL.Pa.DataSource
 {
+	using SIL.Pa.DataSource.FieldWorks;
 	using SIL.Pa.Model;
 
 	public enum DataSourceType
@@ -79,17 +133,6 @@ namespace SIL.Pa.DataSource
 	public enum DataSourceParseType
 	{
 		PhoneticOnly, None, OneToOne, Interlinear
-	}
-
-	/// <summary>
-	/// PLACEHOLDER, not in api-surface.md's declarations: PaDataSource's
-	/// FieldWorks ctor and property mention this type without transcribing it
-	/// (the add-on never touches FieldWorks sources). An empty class is enough
-	/// for the PaDataSource surface to compile. Its exact namespace could not
-	/// be verified offline - flagged in api-surface.md.
-	/// </summary>
-	public class FwDataSourceInfo
-	{
 	}
 
 	[XmlType("DataSource")]

@@ -18,11 +18,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using DekerekeToPa;
+using SIL.FieldWorks.Common.UIAdapters;
 using SIL.Pa;
 using SIL.Pa.DataSource;
 using SIL.Pa.Model;
@@ -68,7 +70,18 @@ namespace PaDekereke
 			public string DekerekePath;
 		}
 
+		private const string DialogCaption = "Dekereke Data Sources";
+
+		// Menu wiring (names follow PA's conventions; see PaTMDefinition.xml).
+		private const string AddSourceCommandId = "CmdAddDekerekeDataSource";
+		private const string AddSourceMessage = "AddDekerekeDataSource";
+		private const string AddSourceMenuName = "mnuAddDekerekeDataSource";
+
 		private static PaAddOnManager s_instance;
+
+		// Two PA processes can share the log file (each writes its own
+		// "constructed" line), so every line carries the process id.
+		private static readonly int s_pid = Process.GetCurrentProcess().Id;
 
 		// Loads can NEST: a modal dialog shown inside OnBeforeLoadingDataSources
 		// pumps messages, and PA can start a second complete load pipeline from
@@ -226,6 +239,164 @@ namespace PaDekereke
 			}
 
 			return false;
+		}
+
+		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// PA broadcasts "MainViewOpened" when the main window's views and menus
+		/// are ready (PaMainWnd.cs:175 and :192 - it can arrive twice per window,
+		/// hence the GetItemProperties idempotence check). This is where an
+		/// add-on may add its menu items, per the add-on loader's own docs.
+		/// </summary>
+		protected bool OnMainViewOpened(object args)
+		{
+			try
+			{
+				AddMenuItems();
+			}
+			catch (Exception ex)
+			{
+				Log("FAILED to add menu items: " + ex);
+			}
+
+			return false;
+		}
+
+		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// Handles the Tools menu item: pick a Dekereke .xml, validate it really
+		/// is one, append it to the project and reload - which runs the normal
+		/// convert/swap pipeline, including the first-contact mapping dialog.
+		/// This is the supported way to add a Dekereke data source: PA's own
+		/// add-data-source dialog rejects XML files ("You must specify an XSLT
+		/// file", ProjectSettingsDlg.cs:362) before this add-on could see them.
+		/// </summary>
+		protected bool OnAddDekerekeDataSource(object args)
+		{
+			try
+			{
+				HandleAddDekerekeDataSource();
+			}
+			catch (Exception ex)
+			{
+				Log("ERROR adding Dekereke data source: " + ex);
+				ShowError("(Add Dekereke Data Source)", ex);
+			}
+
+			return true; // this command is ours alone
+		}
+
+		/// ------------------------------------------------------------------------------------
+		/// <summary>
+		/// PA's adapter sends "Update" + message when the menu is about to show
+		/// (TMAdapter.cs:2237): grey the item out until a project is open.
+		/// </summary>
+		protected bool OnUpdateAddDekerekeDataSource(object args)
+		{
+			var props = args as TMItemProperties;
+			if (props == null)
+				return false;
+
+			var enable = App.Project != null;
+			if (props.Enabled != enable)
+			{
+				props.Enabled = enable;
+				props.Update = true;
+			}
+
+			return true;
+		}
+
+		#endregion
+
+		#region Add-data-source menu machinery
+		/// ------------------------------------------------------------------------------------
+		private void AddMenuItems()
+		{
+			var adapter = App.TMAdapter;
+			if (adapter == null)
+			{
+				Log("MainViewOpened, but App.TMAdapter is null; menu item not added");
+				return;
+			}
+
+			if (adapter.GetItemProperties(AddSourceMenuName) != null)
+				return; // already added (MainViewOpened arrives twice per window)
+
+			adapter.AddCommandItem(AddSourceCommandId, AddSourceMessage,
+				"Add Dekereke Data Source...", null, null,
+				"Add a Dekereke phonology database (.xml) as a live, auto-refreshing data source",
+				null, null, Keys.None, null, null);
+
+			var props = new TMItemProperties
+			{
+				CommandId = AddSourceCommandId,
+				Name = AddSourceMenuName,
+				Text = null
+			};
+
+			adapter.AddMenuItem(props, "mnuTools", "mnuOptions");
+			Log("added 'Add Dekereke Data Source...' to the Tools menu");
+		}
+
+		/// ------------------------------------------------------------------------------------
+		private void HandleAddDekerekeDataSource()
+		{
+			var project = App.Project;
+			if (project == null)
+			{
+				MessageBox.Show(App.MainForm,
+					"Open or create a project first, then add the Dekereke database to it.",
+					DialogCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			string path;
+			using (var dlg = new OpenFileDialog())
+			{
+				dlg.Title = "Add Dekereke Data Source";
+				dlg.Filter = "Dekereke databases (*.xml)|*.xml|All files (*.*)|*.*";
+				dlg.CheckFileExists = true;
+
+				if (dlg.ShowDialog(App.MainForm) != DialogResult.OK)
+					return;
+
+				path = dlg.FileName;
+			}
+
+			// Validate for real: well-formed XML whose root element is
+			// <phon_data>. Rejects LIFT, PAXML and arbitrary XML.
+			if (!DekerekeFile.Sniff(path))
+			{
+				Log("rejected non-Dekereke file: " + path);
+				MessageBox.Show(App.MainForm,
+					string.Format(
+						"'{0}' is not a Dekereke database.{1}{1}A Dekereke database is an XML file " +
+						"whose top-level element is <phon_data>.", path, Environment.NewLine),
+					DialogCaption, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+				return;
+			}
+
+			if (project.DataSources != null && project.DataSources.Any(
+				d => string.Equals(d.SourceFile, path, StringComparison.OrdinalIgnoreCase)))
+			{
+				MessageBox.Show(App.MainForm,
+					string.Format("'{0}' is already a data source in this project.", path),
+					DialogCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
+				return;
+			}
+
+			Log("adding Dekereke data source via menu: " + path);
+
+			// The PaDataSource(fields, filename) ctor types a non-PAXML XML file
+			// as DataSourceType.XML (PaDataSource.cs:351-379) - the exact shape
+			// the convert/swap hook picks up on load. ReloadDataSources() runs
+			// the full pipeline, so first contact shows the mapping dialog and
+			// the record cache refreshes; it also broadcasts
+			// "DataSourcesModified" so PA's views update.
+			project.DataSources.Add(new PaDataSource(project.Fields, path));
+			project.Save();
+			project.ReloadDataSources();
 		}
 
 		#endregion
@@ -423,8 +594,8 @@ namespace PaDekereke
 					"PaDekereke");
 				Directory.CreateDirectory(dir);
 				File.AppendAllText(Path.Combine(dir, "addon.log"),
-					DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + message +
-					Environment.NewLine);
+					DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  [pid " + s_pid + "]  " +
+					message + Environment.NewLine);
 			}
 			catch
 			{

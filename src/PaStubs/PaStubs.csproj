@@ -23,6 +23,12 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- The ITMAdapter surface uses Keys, Image and Form. -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SilToolsStubs\SilToolsStubs.csproj" />
   </ItemGroup>

@@ -63,15 +63,4 @@ namespace SilTools
 		}
 	}
 
-	/// <summary>
-	/// PLACEHOLDER, not in api-surface.md's declarations: App.TMAdapter (which
-	/// the add-on never touches) is declared there as ITMAdapter without the
-	/// interface itself being transcribed. The real SilTools interface is large
-	/// (PA's toolbar/menu adapter framework); an empty interface is enough for
-	/// the App surface to compile. Its exact home could not be verified offline
-	/// - flagged in api-surface.md.
-	/// </summary>
-	public interface ITMAdapter
-	{
-	}
 }

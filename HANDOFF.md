@@ -136,9 +136,10 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
      Dekereke file in the `.pap`, reopen — project *open* does not go
      through the dialog validation, and the add-on swaps the source before
      the reader would skip it. (Not yet verified on Windows.)
-   - The real fix is an add-on-owned "Add Dekereke Data Source" menu item
-     via `App.TMAdapter` — blocked on transcribing the real `ITMAdapter`
-     from PA source (see `api-surface.md`, stub-building gap) — or Part B.
+   - The real fix — an add-on-owned "Add Dekereke Data Source" menu item
+     via `App.TMAdapter` — is IMPLEMENTED (2026-08-10, `ITMAdapter`
+     transcribed from a source clone; see `api-surface.md`, "Menus").
+     The `.pap` hand-edit above remains only as a fallback/diagnostic.
    - Debugging aid: the add-on logs to `%LOCALAPPDATA%\PaDekereke\addon.log`
      ("constructed" = loader ran it; "registered" = Pa.exe/SilTools bound;
      conversion lines = pipeline live). No file at all = the loader never
@@ -154,21 +155,27 @@ no `possibleDataSourceFieldNames` in `DistFiles/Configuration/DefaultFields.xml`
    - **The `.pap` workaround itself is also confirmed live** (same day, real
      Fayu database, 944 records): project open → mapping dialog → convert →
      PA read the swap → restore, end to end. It exposed trap 8 below.
-8. **`ReadAddOns` runs once per main-window construction, and loads can
-   nest** (observed live, 2026-08-10). Opening a project constructs a new
-   `PaMainWnd`, which runs `App.ReadAddOns()` again and instantiates a
-   fresh `PaAddOnManager` - N project windows = N+1 live instances, all
-   registered as mediator colleagues. Worse: a modal dialog shown inside
-   `OnBeforeLoadingDataSources` pumps messages, and PA started a second
-   complete load pipeline from inside it - log evidence: two
-   `BeforeLoadingDataSources` broadcasts 2 s apart, both before the first
-   dialog's OK, the two dialogs' conversions then resolving LIFO. Any PA
-   add-on must therefore: register only its first instance (process-wide
-   singleton), keep per-load state re-entrancy-safe (the swap list is a
-   LIFO stack here), and refuse to stack a second dialog for a database
-   whose dialog is already open (the nested pass silently uses the
-   auto-map; the outer load's read finishes last and its confirmed result
-   wins). All three are implemented in `PaAddOnManager`.
+8. **Duplicate add-on instances and overlapping loads are real; know the
+   two causes** (observed live 2026-08-10; cause pinned from source the
+   same day). A first live test showed two `constructed` lines seconds
+   apart and two identical mapping dialogs whose OKs resolved in
+   sequence. Source facts: `App.ReadAddOns()` is called only from the
+   `PaMainWnd` constructor (`PaMainWnd.cs:80`), and `PaMainWnd` is
+   constructed exactly once per process (`Program.cs:42`) - so the double
+   instantiation was almost certainly **two PA processes** sharing the
+   log (each auto-loading the last project, each prompting). The add-on
+   now logs its process id to make this unambiguous. Separately,
+   **same-process re-entrancy is still possible**: a modal dialog inside
+   `OnBeforeLoadingDataSources` pumps messages, and a focus-triggered
+   `ReloadProject` can start a second load pipeline mid-dialog. Defenses
+   implemented in `PaAddOnManager` and worth keeping regardless of cause:
+   register only the first instance per process (static singleton), keep
+   per-load swap state on a LIFO stack (restore is swap-driven, so even
+   mispaired pops restore correctly), and never stack a second mapping
+   dialog for a database whose dialog is already open (the nested pass
+   silently uses the auto-map). Cross-process duplication cannot be
+   guarded from inside one process; it is benign (the mapping store's
+   last writer wins).
 
 ## State of the code (as of handoff)
 
@@ -215,8 +222,16 @@ any OS — compile only; running needs Windows.
    `ProjectSettingsDlg`, and XML picks dead-end at the XSLT error — trap 7),
    so this means an add-on-owned "Add Dekereke Data Source…" menu item with
    its own picker + Sniff validation, which appends the `PaDataSource`,
-   saves, and triggers a reload. Same `ITMAdapter` dependency as (1).
-   Part B is what would put "Dekereke (*.xml)" in PA's native picker.
+   saves, and triggers a reload.
+   **IMPLEMENTED 2026-08-10** (`ITMAdapter` transcribed from a source clone —
+   see `api-surface.md`, "Menus"): Tools menu → "Add Dekereke Data Source…",
+   placed before Options; greyed until a project is open; picker filtered to
+   `*.xml`; Sniff-validated with a clear message on rejection; duplicate-path
+   check; then `DataSources.Add(new PaDataSource(fields, path))` +
+   `project.Save()` + `ReloadDataSources()` — the standard pipeline, mapping
+   dialog on first contact, **no `.pap` hand-editing**. Compile-checked only;
+   needs the live PA pass. Part B is what would put "Dekereke (*.xml)" in
+   PA's native picker.
 
 ## Remaining work, in priority order
 

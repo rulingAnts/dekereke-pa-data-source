@@ -252,22 +252,70 @@ FieldWorks-sourced one, traversed as a clean no-op). Run-time correctness of
 the remaining surface (swap/restore, `FieldMapping`, `PaDataSource` ctor
 behaviour) still needs the Dekereke load itself.
 
-### Types referenced above but not declared (stub-building gap, found 2026-08)
+### Types originally referenced but not declared (gap found 2026-08, closed same month)
 
-Two types appear in the declarations above without their own transcription, so
-a stub built "exactly from this document" does not compile until they are
-declared somewhere:
+Two types appeared in the declarations above without their own transcription.
+Both were verified against a clone of the PA source on 2026-08-10:
 
-- **`ITMAdapter`** — the type of `App.TMAdapter`. Lives in `SilTools.dll`; the
-  add-on never touches it. The stub declares an empty
-  `SilTools.ITMAdapter` placeholder. Its real (large) declaration and exact
-  namespace were not verified against PA source when this file was written.
-- **`FwDataSourceInfo`** — used by a `PaDataSource` constructor and property;
-  FieldWorks-only, never touched by the add-on. The stub declares an empty
-  placeholder in `SIL.Pa.DataSource`; the real type's exact namespace (possibly
-  a `FieldWorks` sub-namespace) was not verified offline.
+- **`ITMAdapter`** — the type of `App.TMAdapter`. NOT in SilTools.dll as first
+  assumed: it lives in namespace `SIL.FieldWorks.Common.UIAdapters`, compiled
+  into **Pa.exe** (`src/Pa/UIAdapter/TMInterface.cs:22`; the concrete adapter
+  is `TMAdapter.cs` beside it). The subset the add-on uses is declared below.
+- **`FwDataSourceInfo`** — namespace `SIL.Pa.DataSource.FieldWorks`
+  (`src/Pa/DataSourceClasses/FieldWorks/FwDataSourceInfo.cs:19`). Still an
+  empty placeholder in the stub; the add-on never touches FieldWorks sources.
 
-Neither gap affects the add-on itself — it uses neither type — but anyone
-regenerating the stubs, or extending the add-on to touch toolbars/menus
-(`App.TMAdapter`) or FieldWorks sources, must transcribe the real declarations
-from PA source first.
+## Menus — `SIL.FieldWorks.Common.UIAdapters` (compiled into Pa.exe)
+
+Used by the add-on's "Add Dekereke Data Source…" Tools-menu item. Partial
+transcription — the real `ITMAdapter` is much larger; a partial interface stub
+is safe for *callers* (member references bind by name+signature at run time)
+but must never be *implemented* against.
+
+```csharp
+namespace SIL.FieldWorks.Common.UIAdapters
+{
+    public class TMItemProperties            // HelperClasses.cs:47 (subset)
+    {
+        public string Name { get; set; }
+        public string Text { get; set; }
+        public string CommandId { get; set; }
+        public bool Enabled { get; set; }
+        public bool Visible { get; set; }
+        public bool Update { get; set; }
+    }
+
+    public interface ITMAdapter              // TMInterface.cs:22 (subset)
+    {
+        void AddCommandItem(string cmdId, string message, string text, string textAlt,
+            string contextMenuText, string toolTipText, string category, string statusMsg,
+            Keys shortcutKey, string imageLabel, Image image);
+        void AddMenuItem(TMItemProperties itemProps, string parentItemName, string insertBeforeItem);
+        TMItemProperties GetItemProperties(string name);   // null when the name is unknown
+    }
+}
+```
+
+Menu mechanics (all verified in source):
+
+- `App.MainForm` (`App.cs:726`) and `App.Project` (`App.cs:857`) are public
+  static; `App.TMAdapter` is assigned by `PaMainWnd` (`PaMainWnd.cs:394`).
+- PA broadcasts **`"MainViewOpened"`** (arg: the `PaMainWnd`) when views and
+  menus are ready — from `PaMainWnd.cs:175` and `:192`, so it can arrive
+  TWICE per window; menu-adding handlers must be idempotent
+  (`GetItemProperties(name) != null` ⇒ already added).
+- Clicking a command item sends the command's *message* through the mediator
+  (`TMAdapter.cs:1943`) ⇒ handler `On<Message>(object)`; before display the
+  adapter sends `"Update" + message` with the item's `TMItemProperties`
+  (`TMAdapter.cs:2237`) — set `Enabled` + `Update = true` and return true to
+  grey items out.
+- Menu names for placement come from `src/Pa/Resources/PaTMDefinition.xml`:
+  the Tools menu is `mnuTools`, its last separator group starts at
+  `mnuOptions` (line 249), so `AddMenuItem(props, "mnuTools", "mnuOptions")`
+  lands above Options — the pattern PA's own `PaAddOnInfoAddOn` uses.
+- `PaProject.ReloadDataSources()` (`PaProject.cs:521`) runs `LoadDataSources()`
+  synchronously — including the Before/After messages the add-on hooks — then
+  broadcasts `"DataSourcesModified"` so the UI refreshes.
+- `PaDataSource(fields, filename)` types a well-formed non-PAXML XML file as
+  `DataSourceType.XML` (`PaDataSource.cs:351-379`) — programmatically adding a
+  Dekereke file this way is exactly equivalent to the hand-edited `.pap` entry.
