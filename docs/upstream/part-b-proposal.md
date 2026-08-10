@@ -24,10 +24,11 @@ Notes before posting, not part of the issue:
 Provided with a corpus of phonetic data, Phonology Assistant charts it and
 helps a user discover the rules of sound in a language. **Dekereke** ([Rod
 Casali's Phonology Database software](https://casali.canil.ca)) is where a
-substantial community of field linguists — including many Indonesian-language
-projects — keeps exactly that corpus. The two tools serve the same users at the
+substantial community of field linguists keeps exactly that corpus. The two tools serve the same users at the
 same desks, but PA cannot read Dekereke's XML, so those users work from
 exported snapshots that go stale on every edit.
+
+It would be very useful (especially for those with tone languages) to be able to collect and build a core phonology database in Dekereke, which is purpose-built for that end, and useful for tone analysis, acoustic analysis, and other metrical and super-segmental phonlogy, but nowhere near as intuitive or useful at segmental work (especially ambiguous segments and sequences and contrast and complementary distribution) as Phonology Assistant.
 
 I'd like to contribute native support: `DataSourceType.Dekereke`, purely
 additive, touching no existing behaviour. **This is not a speculative feature
