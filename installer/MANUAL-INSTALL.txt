@@ -1,0 +1,41 @@
+Dekereke Data Sources for Phonology Assistant - manual install
+==============================================================
+
+Use this only if you would rather not run the installer (for example if you
+cannot elevate). The installer does exactly what follows, plus a clean
+uninstall entry.
+
+1. Close Phonology Assistant completely. If it has been misbehaving, check
+   Task Manager for stray Pa.exe processes and end them.
+
+2. Find the folder containing Pa.exe. Normally:
+
+       C:\Program Files (x86)\SIL\Phonology Assistant
+
+3. Create an "AddOns" subfolder there if it does not already exist:
+
+       C:\Program Files (x86)\SIL\Phonology Assistant\AddOns
+
+   (Windows will ask for administrator permission. That is expected.)
+
+4. Copy BOTH files from this zip into that AddOns folder:
+
+       PaDekereke.dll
+       DekerekeToPa.dll
+
+5. Start Phonology Assistant.
+
+To confirm it loaded, open the Tools menu: "Add Dekereke Data Source..."
+should be there. A log of what the add-on is doing is written to:
+
+       %LOCALAPPDATA%\PaDekereke\addon.log
+
+To uninstall, delete those two files from the AddOns folder.
+
+Using it
+--------
+File > New Project (or Project Settings on an open project), then
+Add > "Dekereke Data Source...", and choose your Dekereke .xml database.
+You will be asked to confirm which Dekereke column feeds which Phonology
+Assistant field; the guesses are usually right. After that, edit in Dekereke
+and switch back to Phonology Assistant - it reloads by itself.

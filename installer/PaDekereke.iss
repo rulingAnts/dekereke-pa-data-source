@@ -27,14 +27,22 @@
 ; -----------------------------------------------------------------------------
 
 #define AppName "Dekereke Data Sources for Phonology Assistant"
-#define AppVersion "0.1.0"
+; Overridable from CI: iscc /DAppVersion=1.2.3 installer\PaDekereke.iss
+#ifndef AppVersion
+  #define AppVersion "0.1.0-dev"
+#endif
+#define AppPublisherName "Seth Johnston"
+#define AppUrl "https://github.com/rulingAnts/dekereke-pa-data-source"
 #define AddOnBuildDir "..\src\PaDekereke\bin\Release\net48"
 
 [Setup]
 AppId={{B7A2F1C4-8D3E-4A57-9B12-DE0C6A55F2A1}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=Seth Johnston
+AppPublisher={#AppPublisherName}
+AppPublisherURL={#AppUrl}
+AppSupportURL={#AppUrl}/issues
+AppUpdatesURL={#AppUrl}/releases
 DefaultDirName={code:GetPaDir}\AddOns
 DisableDirPage=no
 DirExistsWarning=no

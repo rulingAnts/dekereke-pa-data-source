@@ -1,0 +1,124 @@
+name: installer
+
+# Builds the Windows installer, and on a version tag publishes it as a release.
+#
+# Runs on Windows because Inno Setup's compiler is Windows-only. The add-on
+# itself is built against the compile-only API stubs (see
+# docs/pa-internals/api-surface.md): no Phonology Assistant install is needed,
+# and because .NET assemblies are architecture-neutral IL that resolves
+# references by name at run time, the result is the same binary a
+# PA-referencing build would produce. Confirmed working against a real PA
+# 4.1.1 install on 2026-08-10.
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # A tag vX.Y.Z releases that version; anything else is a dev build whose
+      # name can never be mistaken for a release.
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+            $isRelease = 'true'
+          } else {
+            $version = "0.0.0-dev+$($env:GITHUB_SHA.Substring(0,7))"
+            $isRelease = 'false'
+          }
+          # Inno's OutputBaseFilename ends up in a file name, so keep it clean.
+          $fileVersion = $version -replace '[^0-9A-Za-z.\-]', '-'
+          "version=$version"           | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "fileVersion=$fileVersion"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "isRelease=$isRelease"       | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Building version $version (release: $isRelease)"
+
+      - name: Build add-on
+        run: dotnet build src/PaDekereke -c Release -p:UseStubs=true
+
+      - name: Verify the add-on output contains no stub assemblies
+        shell: pwsh
+        run: |
+          # The stubs are referenced with Private=false precisely so they never
+          # ship. If one ever appears here, fail loudly rather than install a
+          # fake Pa.dll into a user's Phonology Assistant folder.
+          $out = 'src/PaDekereke/bin/Release/net48'
+          $banned = @('Pa.dll', 'Pa.exe', 'SilTools.dll')
+          $found = Get-ChildItem $out -File | Where-Object { $banned -contains $_.Name }
+          if ($found) {
+            Write-Error "Stub assemblies present in the add-on output: $($found.Name -join ', ')"
+            exit 1
+          }
+          Get-ChildItem $out -File | Select-Object Name, Length | Format-Table
+
+      - name: Ensure Inno Setup is available
+        id: inno
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            Write-Host 'Inno Setup not preinstalled; installing via Chocolatey...'
+            choco install innosetup -y --no-progress
+          }
+          if (-not (Test-Path $iscc)) { Write-Error "ISCC.exe not found at $iscc"; exit 1 }
+          "iscc=$iscc" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Compile the installer
+        shell: pwsh
+        run: |
+          & '${{ steps.inno.outputs.iscc }}' `
+            "/DAppVersion=${{ steps.version.outputs.fileVersion }}" `
+            installer\PaDekereke.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem installer\Output
+
+      # Manual-install alternative for anyone who would rather drop the DLLs in
+      # by hand, or who cannot run an elevated installer.
+      - name: Package the manual-install zip
+        shell: pwsh
+        run: |
+          $staging = 'installer/Output/manual'
+          New-Item -ItemType Directory -Force -Path $staging | Out-Null
+          Copy-Item src/PaDekereke/bin/Release/net48/PaDekereke.dll   $staging
+          Copy-Item src/PaDekereke/bin/Release/net48/DekerekeToPa.dll $staging
+          Copy-Item installer/MANUAL-INSTALL.txt                      $staging
+          Compress-Archive -Path "$staging/*" `
+            -DestinationPath "installer/Output/PaDekereke-${{ steps.version.outputs.fileVersion }}-manual-install.zip" -Force
+          Remove-Item -Recurse -Force $staging
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PaDekereke-installer-${{ steps.version.outputs.fileVersion }}
+          path: |
+            installer/Output/*.exe
+            installer/Output/*.zip
+          if-no-files-found: error
+
+      - name: Publish release
+        if: steps.version.outputs.isRelease == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$env:GITHUB_REF_NAME" `
+            (Get-ChildItem installer/Output/*.exe, installer/Output/*.zip | ForEach-Object { $_.FullName }) `
+            --title "Dekereke Data Sources ${{ steps.version.outputs.version }}" `
+            --notes-file installer/RELEASE-NOTES-TEMPLATE.md
