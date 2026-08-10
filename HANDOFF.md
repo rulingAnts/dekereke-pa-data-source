@@ -206,6 +206,28 @@ be shipped or installed.
 Either way `Microsoft.NETFramework.ReferenceAssemblies` makes net48 compile on
 any OS — compile only; running needs Windows.
 
+## Live results (2026-08-10, PA 4.1.1, Win11-ARM VM, real Fayu database)
+
+Working end to end, from `%LOCALAPPDATA%\PaDekereke\addon.log`:
+
+- Added through PA's **New Project** dialog → Add ▾ → Dekereke Data Source:
+  1066 records, 69 columns read; mapping confirmed once at import → 10 field
+  mappings; project created with no XSLT and no phonetic-mapping complaint.
+- First load used the import-time mapping (`using the mapping confirmed when
+  this database was added`) — **no second dialog**.
+- 944 records written, 122 skipped for an empty phonetic field — identical on
+  every subsequent run.
+- Restarting PA and editing in Dekereke both produce a silent
+  `converted` → `restored` pair: **auto-refresh works**, which was the goal.
+- **Performance:** the whole convert → read → restore cycle takes 1–2 s, so the
+  conditional-regeneration cache `docs/PLAN.md` hedged about is unnecessary.
+- A FieldWorks project (`fau-iya-flex`) loads through the add-on as a clean
+  no-op — the stock-behaviour regression, checklist item 6.
+
+Still unverified: the installer's *runtime* behaviour (it compiles in CI, but
+MSI detection and uninstall have not been exercised), and checklist items 3
+(`.pap` integrity inspection), 5 (cancel path) and 7 (Shift-reload).
+
 ## Owner requirements (confirmed 2026-08-10)
 
 1. Field mapping must offer **common-sense defaults** (the auto-mapper's

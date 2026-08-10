@@ -294,8 +294,14 @@ Seth can equally build in Visual Studio. Targets .NET Framework 4.8, x86 (must m
 7. **No-PA regression:** with the add-on installed, open a Toolbox project
    (`Sekpele 2.db`) and confirm PA behaves exactly as before.
 
-## Open question to settle during implementation
+## Open question — SETTLED 2026-08-10
 
 How large a Dekereke file stays acceptable? The conversion runs on **every** reload, i.e. every time
 PA regains focus after a Dekereke edit. Seth's Fayu DB is 3.3 MB / ~2000 records — measure it; if
 conversion is slow, cache by source mtime + mapping hash and skip regeneration when neither changed.
+
+**Measured on the real Fayu database** (1066 records, 69 columns, from the add-on's own log):
+read + auto-map + SFM write completes within the same second it starts, and the whole
+convert → PA read → restore cycle takes 1–2 s. That is well inside what a focus-triggered reload can
+absorb, so **the mtime/mapping-hash cache is not needed** and was not built. Revisit only if a
+database an order of magnitude larger shows up.
